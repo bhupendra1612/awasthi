@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { Menu, X, Phone, ChevronDown, BookOpen, Users, Star, GraduationCap, Award, FileText, Shield, Train, ClipboardList } from "lucide-react";
 
 const navLinks = [
@@ -49,8 +50,14 @@ export default function Header() {
                     <div className="flex justify-between items-center h-16">
                         {/* Logo */}
                         <Link href="/" className="flex items-center gap-3 group">
-                            <div className="w-11 h-11 bg-gradient-to-br from-primary-600 to-blue-600 rounded-xl flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
-                                <span className="text-xl font-bold text-white">A</span>
+                            <div className="w-11 h-11 rounded-xl overflow-hidden group-hover:scale-110 transition-transform shadow-lg">
+                                <Image
+                                    src="/images/logo.png"
+                                    alt="Awasthi Classes Logo"
+                                    width={44}
+                                    height={44}
+                                    className="w-full h-full object-cover"
+                                />
                             </div>
                             {/* Show name on mobile, full branding on desktop */}
                             <span className="sm:hidden text-lg font-bold bg-gradient-to-r from-primary-600 to-blue-600 bg-clip-text text-transparent">

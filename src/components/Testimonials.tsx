@@ -100,9 +100,9 @@ const duplicatedTestimonials = [...testimonials, ...testimonials];
 function TestimonialCard({ testimonial, index }: { testimonial: typeof testimonials[0]; index: number }) {
     return (
         <div
-            className="flex-shrink-0 w-[350px] md:w-[400px] group"
+            className="flex-shrink-0 w-[280px] sm:w-[350px] md:w-[400px] group"
         >
-            <div className="relative bg-white rounded-3xl p-6 shadow-lg border border-gray-100 h-full transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 hover:border-transparent overflow-hidden">
+            <div className="relative bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-lg border border-gray-100 h-full transition-all duration-500 hover:shadow-2xl hover:-translate-y-2 hover:border-transparent overflow-hidden">
                 {/* Hover gradient background */}
                 <div className={`absolute inset-0 bg-gradient-to-br ${testimonial.gradient} opacity-0 group-hover:opacity-5 transition-opacity duration-500`} />
 
@@ -125,21 +125,21 @@ function TestimonialCard({ testimonial, index }: { testimonial: typeof testimoni
                 </div>
 
                 {/* Content */}
-                <p className="text-gray-700 leading-relaxed mb-6 line-clamp-4">
+                <p className="text-gray-700 leading-relaxed mb-4 sm:mb-6 line-clamp-3 sm:line-clamp-4 text-sm sm:text-base">
                     &ldquo;{testimonial.content}&rdquo;
                 </p>
 
                 {/* Author */}
-                <div className="flex items-center gap-4 pt-4 border-t border-gray-100">
-                    <div className={`w-14 h-14 bg-gradient-to-br ${testimonial.gradient} rounded-2xl flex items-center justify-center text-white text-xl font-bold shadow-lg group-hover:scale-110 transition-transform duration-300`}>
+                <div className="flex items-center gap-3 sm:gap-4 pt-3 sm:pt-4 border-t border-gray-100">
+                    <div className={`w-11 h-11 sm:w-14 sm:h-14 bg-gradient-to-br ${testimonial.gradient} rounded-xl sm:rounded-2xl flex items-center justify-center text-white text-lg sm:text-xl font-bold shadow-lg group-hover:scale-110 transition-transform duration-300`}>
                         {testimonial.name.charAt(0)}
                     </div>
                     <div>
-                        <h4 className="font-bold text-gray-900">{testimonial.name}</h4>
-                        <p className="text-sm text-gray-500">{testimonial.role}</p>
-                        <div className="flex items-center gap-1 mt-1">
-                            <Trophy size={12} className="text-yellow-500" />
-                            <span className="text-xs font-medium text-yellow-600">{testimonial.achievement}</span>
+                        <h4 className="font-bold text-gray-900 text-sm sm:text-base">{testimonial.name}</h4>
+                        <p className="text-xs sm:text-sm text-gray-500">{testimonial.role}</p>
+                        <div className="flex items-center gap-1 mt-0.5 sm:mt-1">
+                            <Trophy size={10} className="text-yellow-500 sm:w-3 sm:h-3" />
+                            <span className="text-[10px] sm:text-xs font-medium text-yellow-600">{testimonial.achievement}</span>
                         </div>
                     </div>
                 </div>

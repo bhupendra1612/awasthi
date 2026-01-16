@@ -202,8 +202,8 @@ export default function DownloadApp() {
                                 </div>
                             </div>
 
-                            {/* Floating badges */}
-                            <div className="absolute -top-4 -left-8 bg-white rounded-2xl shadow-2xl p-3 animate-float">
+                            {/* Floating badges - Hidden on mobile, visible on larger screens */}
+                            <div className="hidden sm:block absolute -top-4 -left-8 bg-white rounded-2xl shadow-2xl p-3 animate-float">
                                 <div className="flex items-center gap-2">
                                     <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center">
                                         <WifiOff className="text-white" size={18} />
@@ -215,7 +215,7 @@ export default function DownloadApp() {
                                 </div>
                             </div>
 
-                            <div className="absolute -bottom-4 -right-8 bg-white rounded-2xl shadow-2xl p-3 animate-float" style={{ animationDelay: "1s" }}>
+                            <div className="hidden sm:block absolute -bottom-4 -right-8 bg-white rounded-2xl shadow-2xl p-3 animate-float" style={{ animationDelay: "1s" }}>
                                 <div className="flex items-center gap-2">
                                     <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
                                         <Zap className="text-white" size={18} />
@@ -227,7 +227,7 @@ export default function DownloadApp() {
                                 </div>
                             </div>
 
-                            <div className="absolute top-1/3 -right-12 bg-white rounded-2xl shadow-2xl p-3 animate-float" style={{ animationDelay: "0.5s" }}>
+                            <div className="hidden lg:block absolute top-1/3 -right-12 bg-white rounded-2xl shadow-2xl p-3 animate-float" style={{ animationDelay: "0.5s" }}>
                                 <div className="flex items-center gap-2">
                                     <div className="w-10 h-10 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center">
                                         <Bell className="text-white" size={18} />

@@ -1,8 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 
-// OpenAI API configuration
+// AI API configuration - supports multiple providers
 const OPENAI_API_KEY = process.env.OPENAI_API_KEY;
+const GEMINI_API_KEY = process.env.GEMINI_API_KEY;
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY;
+const GROQ_API_KEY = process.env.GROQ_API_KEY;
 
 export async function POST(request: NextRequest) {
     try {
@@ -26,155 +29,54 @@ export async function POST(request: NextRequest) {
             return NextResponse.json({ success: false, error: "Template not found" }, { status: 404 });
         }
 
-        // Check if OpenAI API key is configured
-        if (!OPENAI_API_KEY) {
-            // For demo/testing without API key - create mock questions
-            const mockQuestions = generateMockQuestions(template);
-
-            // Create the test
-            const { data: test, error: testError } = await supabase
-                .from("generated_daily_tests")
-                .insert({
-                    template_id: template.id,
-                    title: `${template.exam_category} - ${template.subject} (${new Date().toLocaleDateString("en-IN")})`,
-                    exam_category: template.exam_category,
-                    subject: template.subject,
-                    difficulty: template.difficulty,
-                    questions_count: template.questions_count,
-                    duration_minutes: template.duration_minutes,
-                    status: "pending_approval",
-                    approval_deadline: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour from now
-                    test_date: new Date().toISOString().split("T")[0]
-                })
-                .select()
-                .single();
-
-            if (testError) {
-                return NextResponse.json({ success: false, error: testError.message }, { status: 500 });
-            }
-
-            // Insert mock questions
-            const questionsToInsert = mockQuestions.map((q: any, index: number) => ({
-                daily_test_id: test.id,
-                question_text: q.question,
-                option_a: q.option_a,
-                option_b: q.option_b,
-                option_c: q.option_c,
-                option_d: q.option_d,
-                correct_option: q.correct_option,
-                explanation: q.explanation,
-                order_index: index
-            }));
-
-            await supabase.from("generated_daily_questions").insert(questionsToInsert);
-
-            return NextResponse.json({
-                success: true,
-                message: "Test generated (demo mode - add OPENAI_API_KEY for real AI generation)",
-                testId: test.id
-            });
-        }
-
-        // Call OpenAI API
-        const openaiResponse = await fetch("https://api.openai.com/v1/chat/completions", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "Authorization": `Bearer ${OPENAI_API_KEY}`
-            },
-            body: JSON.stringify({
-                model: "gpt-4o-mini", // Cost-effective model
-                messages: [
-                    {
-                        role: "system",
-                        content: "You are an expert question paper creator for Indian government competitive exams. Generate high-quality MCQ questions with accurate answers and explanations. Always respond with valid JSON."
-                    },
-                    {
-                        role: "user",
-                        content: template.ai_prompt
-                    }
-                ],
-                temperature: 0.7,
-                max_tokens: 4000
-            })
-        });
-
-        if (!openaiResponse.ok) {
-            const errorData = await openaiResponse.json();
-
-            // If quota exceeded, fall back to demo mode
-            if (errorData.error?.code === 'insufficient_quota' || errorData.error?.message?.includes('quota')) {
-                console.log("OpenAI quota exceeded, falling back to demo mode");
-                const mockQuestions = generateMockQuestions(template);
-
-                // Create the test with mock questions
-                const { data: test, error: testError } = await supabase
-                    .from("generated_daily_tests")
-                    .insert({
-                        template_id: template.id,
-                        title: `${template.exam_category} - ${template.subject} (${new Date().toLocaleDateString("en-IN")})`,
-                        exam_category: template.exam_category,
-                        subject: template.subject,
-                        difficulty: template.difficulty,
-                        questions_count: template.questions_count,
-                        duration_minutes: template.duration_minutes,
-                        status: "pending_approval",
-                        approval_deadline: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
-                        test_date: new Date().toISOString().split("T")[0]
-                    })
-                    .select()
-                    .single();
-
-                if (testError) {
-                    return NextResponse.json({ success: false, error: testError.message }, { status: 500 });
-                }
-
-                // Insert mock questions
-                const questionsToInsert = mockQuestions.map((q: any, index: number) => ({
-                    daily_test_id: test.id,
-                    question_text: q.question,
-                    option_a: q.option_a,
-                    option_b: q.option_b,
-                    option_c: q.option_c,
-                    option_d: q.option_d,
-                    correct_option: q.correct_option,
-                    explanation: q.explanation,
-                    order_index: index
-                }));
-
-                await supabase.from("generated_daily_questions").insert(questionsToInsert);
-
-                return NextResponse.json({
-                    success: true,
-                    message: "Test generated in demo mode (OpenAI quota exceeded - add credits to use AI)",
-                    testId: test.id
-                });
-            }
-
-            return NextResponse.json({
-                success: false,
-                error: "OpenAI API error: " + (errorData.error?.message || "Unknown error")
-            }, { status: 500 });
-        }
-
-        const openaiData = await openaiResponse.json();
-        const aiContent = openaiData.choices[0]?.message?.content;
-
-        // Parse JSON from AI response
+        // Try different AI providers in order of preference
         let questions;
-        try {
-            // Try to extract JSON from the response
-            const jsonMatch = aiContent.match(/\[[\s\S]*\]/);
-            if (jsonMatch) {
-                questions = JSON.parse(jsonMatch[0]);
-            } else {
-                questions = JSON.parse(aiContent);
+        let aiProvider = "demo";
+
+        // 1. Try Google Gemini (FREE & GENEROUS)
+        if (GEMINI_API_KEY) {
+            try {
+                questions = await generateWithGemini(template);
+                aiProvider = "Gemini";
+            } catch (error: any) {
+                console.log("Gemini failed:", error.message);
             }
-        } catch (parseError) {
-            return NextResponse.json({
-                success: false,
-                error: "Failed to parse AI response. Please try again."
-            }, { status: 500 });
+        }
+
+        // 2. Try Groq (FREE & FAST)
+        if (!questions && GROQ_API_KEY) {
+            try {
+                questions = await generateWithGroq(template);
+                aiProvider = "Groq";
+            } catch (error: any) {
+                console.log("Groq failed:", error.message);
+            }
+        }
+
+        // 3. Try OpenAI (if others failed)
+        if (!questions && OPENAI_API_KEY) {
+            try {
+                questions = await generateWithOpenAI(template);
+                aiProvider = "OpenAI";
+            } catch (error: any) {
+                console.log("OpenAI failed:", error.message);
+            }
+        }
+
+        // 4. Try Anthropic Claude (if others failed)
+        if (!questions && ANTHROPIC_API_KEY) {
+            try {
+                questions = await generateWithClaude(template);
+                aiProvider = "Claude";
+            } catch (error: any) {
+                console.log("Claude failed:", error.message);
+            }
+        }
+
+        // 5. Fallback to demo mode
+        if (!questions) {
+            questions = generateMockQuestions(template);
+            aiProvider = "Demo";
         }
 
         // Create the test
@@ -189,7 +91,7 @@ export async function POST(request: NextRequest) {
                 questions_count: questions.length,
                 duration_minutes: template.duration_minutes,
                 status: "pending_approval",
-                approval_deadline: new Date(Date.now() + 60 * 60 * 1000).toISOString(), // 1 hour from now
+                approval_deadline: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
                 test_date: new Date().toISOString().split("T")[0]
             })
             .select()
@@ -217,19 +119,16 @@ export async function POST(request: NextRequest) {
             .insert(questionsToInsert);
 
         if (questionsError) {
-            // Rollback - delete the test
             await supabase.from("generated_daily_tests").delete().eq("id", test.id);
             return NextResponse.json({ success: false, error: questionsError.message }, { status: 500 });
         }
 
-        // TODO: Send WhatsApp notification to admin
-        // await sendWhatsAppNotification(test.id, template.name);
-
         return NextResponse.json({
             success: true,
-            message: "Test generated successfully!",
+            message: `Test generated successfully using ${aiProvider}!`,
             testId: test.id,
-            questionsCount: questions.length
+            questionsCount: questions.length,
+            provider: aiProvider
         });
 
     } catch (error: any) {
@@ -238,7 +137,155 @@ export async function POST(request: NextRequest) {
     }
 }
 
-// Mock questions for demo/testing without OpenAI API key
+// Google Gemini API (FREE - 1500 requests/day)
+async function generateWithGemini(template: any) {
+    const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            contents: [{
+                parts: [{
+                    text: `You are an expert question paper creator for Indian government competitive exams. ${template.ai_prompt}`
+                }]
+            }],
+            generationConfig: {
+                temperature: 0.7,
+                maxOutputTokens: 4000,
+            }
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || "Gemini API error");
+    }
+
+    const data = await response.json();
+    const content = data.candidates[0]?.content?.parts[0]?.text;
+
+    // Parse JSON from response
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+    }
+    throw new Error("Failed to parse Gemini response");
+}
+
+// Groq API (FREE - 14,400 requests/day)
+async function generateWithGroq(template: any) {
+    const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${GROQ_API_KEY}`
+        },
+        body: JSON.stringify({
+            model: "llama-3.1-70b-versatile",
+            messages: [
+                {
+                    role: "system",
+                    content: "You are an expert question paper creator for Indian government competitive exams. Generate high-quality MCQ questions with accurate answers and explanations. Always respond with valid JSON."
+                },
+                {
+                    role: "user",
+                    content: template.ai_prompt
+                }
+            ],
+            temperature: 0.7,
+            max_tokens: 4000
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || "Groq API error");
+    }
+
+    const data = await response.json();
+    const content = data.choices[0]?.message?.content;
+
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+    }
+    throw new Error("Failed to parse Groq response");
+}
+
+// OpenAI API (Paid)
+async function generateWithOpenAI(template: any) {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${OPENAI_API_KEY}`
+        },
+        body: JSON.stringify({
+            model: "gpt-4o-mini",
+            messages: [
+                {
+                    role: "system",
+                    content: "You are an expert question paper creator for Indian government competitive exams. Generate high-quality MCQ questions with accurate answers and explanations. Always respond with valid JSON."
+                },
+                {
+                    role: "user",
+                    content: template.ai_prompt
+                }
+            ],
+            temperature: 0.7,
+            max_tokens: 4000
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || "OpenAI API error");
+    }
+
+    const data = await response.json();
+    const content = data.choices[0]?.message?.content;
+
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+    }
+    throw new Error("Failed to parse OpenAI response");
+}
+
+// Anthropic Claude API (Free $5/month)
+async function generateWithClaude(template: any) {
+    const response = await fetch("https://api.anthropic.com/v1/messages", {
+        method: "POST",
+        headers: {
+            "Content-Type": "application/json",
+            "x-api-key": ANTHROPIC_API_KEY,
+            "anthropic-version": "2023-06-01"
+        },
+        body: JSON.stringify({
+            model: "claude-3-5-haiku-20241022",
+            max_tokens: 4000,
+            messages: [{
+                role: "user",
+                content: `You are an expert question paper creator for Indian government competitive exams. ${template.ai_prompt}`
+            }]
+        })
+    });
+
+    if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error?.message || "Claude API error");
+    }
+
+    const data = await response.json();
+    const content = data.content[0]?.text;
+
+    const jsonMatch = content.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+        return JSON.parse(jsonMatch[0]);
+    }
+    throw new Error("Failed to parse Claude response");
+}
+
+// Mock questions for demo/testing
 function generateMockQuestions(template: any) {
     const mockQuestions = [
         {

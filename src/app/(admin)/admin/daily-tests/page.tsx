@@ -104,7 +104,9 @@ export default function DailyTestsPage() {
             const result = await response.json();
 
             if (result.success) {
-                alert("✅ Test generated successfully! Check the Generated Tests tab.");
+                const provider = result.provider || "AI";
+                const emoji = provider === "Demo" ? "⚠️" : "🎉";
+                alert(`${emoji} ${result.message || `Test generated successfully using ${provider}!`}`);
                 fetchData();
             } else {
                 alert("❌ Failed to generate test: " + result.error);
@@ -245,8 +247,8 @@ export default function DailyTestsPage() {
                     <button
                         onClick={() => setActiveTab("templates")}
                         className={`flex-1 px-4 py-3 text-sm font-medium transition ${activeTab === "templates"
-                                ? "bg-primary-50 text-primary-600 border-b-2 border-primary-600"
-                                : "text-gray-500 hover:text-gray-700"
+                            ? "bg-primary-50 text-primary-600 border-b-2 border-primary-600"
+                            : "text-gray-500 hover:text-gray-700"
                             }`}
                     >
                         📋 Test Templates ({templates.length})
@@ -254,8 +256,8 @@ export default function DailyTestsPage() {
                     <button
                         onClick={() => setActiveTab("generated")}
                         className={`flex-1 px-4 py-3 text-sm font-medium transition ${activeTab === "generated"
-                                ? "bg-primary-50 text-primary-600 border-b-2 border-primary-600"
-                                : "text-gray-500 hover:text-gray-700"
+                            ? "bg-primary-50 text-primary-600 border-b-2 border-primary-600"
+                            : "text-gray-500 hover:text-gray-700"
                             }`}
                     >
                         🤖 Generated Tests ({generatedTests.length})
@@ -312,8 +314,8 @@ export default function DailyTestsPage() {
                                                 {template.duration_minutes} min
                                             </span>
                                             <span className={`px-1.5 py-0.5 rounded text-xs ${template.difficulty === "easy" ? "bg-green-100 text-green-700" :
-                                                    template.difficulty === "medium" ? "bg-yellow-100 text-yellow-700" :
-                                                        "bg-red-100 text-red-700"
+                                                template.difficulty === "medium" ? "bg-yellow-100 text-yellow-700" :
+                                                    "bg-red-100 text-red-700"
                                                 }`}>
                                                 {template.difficulty}
                                             </span>

@@ -38,8 +38,9 @@ export async function POST(request: NextRequest) {
             try {
                 questions = await generateWithGemini(template);
                 aiProvider = "Gemini";
+                console.log("✅ Gemini generation successful");
             } catch (error: any) {
-                console.log("Gemini failed:", error.message);
+                console.log("❌ Gemini failed:", error.message);
             }
         }
 
@@ -48,8 +49,9 @@ export async function POST(request: NextRequest) {
             try {
                 questions = await generateWithGroq(template);
                 aiProvider = "Groq";
+                console.log("✅ Groq generation successful");
             } catch (error: any) {
-                console.log("Groq failed:", error.message);
+                console.log("❌ Groq failed:", error.message);
             }
         }
 
@@ -58,8 +60,9 @@ export async function POST(request: NextRequest) {
             try {
                 questions = await generateWithOpenAI(template);
                 aiProvider = "OpenAI";
+                console.log("✅ OpenAI generation successful");
             } catch (error: any) {
-                console.log("OpenAI failed:", error.message);
+                console.log("❌ OpenAI failed:", error.message);
             }
         }
 
@@ -68,8 +71,9 @@ export async function POST(request: NextRequest) {
             try {
                 questions = await generateWithClaude(template);
                 aiProvider = "Claude";
+                console.log("✅ Claude generation successful");
             } catch (error: any) {
-                console.log("Claude failed:", error.message);
+                console.log("❌ Claude failed:", error.message);
             }
         }
 
@@ -77,6 +81,7 @@ export async function POST(request: NextRequest) {
         if (!questions) {
             questions = generateMockQuestions(template);
             aiProvider = "Demo";
+            console.log("⚠️ Using demo mode - all AI providers failed");
         }
 
         // Create the test
@@ -125,7 +130,7 @@ export async function POST(request: NextRequest) {
 
         return NextResponse.json({
             success: true,
-            message: `Test generated successfully using ${aiProvider}!`,
+            message: `Test generated successfully using ${aiProvider}! 🎉`,
             testId: test.id,
             questionsCount: questions.length,
             provider: aiProvider
@@ -139,15 +144,26 @@ export async function POST(request: NextRequest) {
 
 // Google Gemini API (FREE - 1500 requests/day)
 async function generateWithGemini(template: any) {
+    const prompt = `You are an expert question paper creator for Indian government competitive exams.
+
+${template.ai_prompt}
+
+CRITICAL: Respond ONLY with a valid JSON array. No explanatory text before or after. Example:
+[{
+  "question": "Question text here?",
+  "option_a": "Option A",
+  "option_b": "Option B",
+  "option_c": "Option C",
+  "option_d": "Option D",
+  "correct_option": "A",
+  "explanation": "Brief explanation"
+}]`;
+
     const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-            contents: [{
-                parts: [{
-                    text: `You are an expert question paper creator for Indian government competitive exams. ${template.ai_prompt}`
-                }]
-            }],
+            contents: [{ parts: [{ text: prompt }] }],
             generationConfig: {
                 temperature: 0.7,
                 maxOutputTokens: 4000,
@@ -157,18 +173,44 @@ async function generateWithGemini(template: any) {
 
     if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error?.message || "Gemini API error");
+        throw new Error(`Gemini API error: ${error.error?.message || response.statusText}`);
     }
 
     const data = await response.json();
-    const content = data.candidates[0]?.content?.parts[0]?.text;
+    const content = data.candidates?.[0]?.content?.parts?.[0]?.text;
 
-    // Parse JSON from response
-    const jsonMatch = content.match(/\[[\s\S]*\]/);
-    if (jsonMatch) {
-        return JSON.parse(jsonMatch[0]);
+    if (!content) {
+        throw new Error("No content in Gemini response");
     }
-    throw new Error("Failed to parse Gemini response");
+
+    // Clean and parse JSON
+    let cleanContent = content.trim();
+    cleanContent = cleanContent.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+
+    // Try to find JSON array
+    const jsonMatch = cleanContent.match(/\[[\s\S]*\]/);
+    if (jsonMatch) {
+        try {
+            const questions = JSON.parse(jsonMatch[0]);
+            if (Array.isArray(questions) && questions.length > 0) {
+                return questions;
+            }
+        } catch (e) {
+            console.error("Gemini JSON parse error:", e);
+        }
+    }
+
+    // Try parsing entire content
+    try {
+        const questions = JSON.parse(cleanContent);
+        if (Array.isArray(questions) && questions.length > 0) {
+            return questions;
+        }
+    } catch (e) {
+        console.error("Gemini full parse error:", e);
+    }
+
+    throw new Error("Failed to parse Gemini response as valid JSON");
 }
 
 // Groq API (FREE - 14,400 requests/day)
@@ -198,7 +240,7 @@ async function generateWithGroq(template: any) {
 
     if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error?.message || "Groq API error");
+        throw new Error(`Groq API error: ${error.error?.message || response.statusText}`);
     }
 
     const data = await response.json();
@@ -238,7 +280,7 @@ async function generateWithOpenAI(template: any) {
 
     if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error?.message || "OpenAI API error");
+        throw new Error(`OpenAI API error: ${error.error?.message || response.statusText}`);
     }
 
     const data = await response.json();
@@ -272,7 +314,7 @@ async function generateWithClaude(template: any) {
 
     if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error?.message || "Claude API error");
+        throw new Error(`Claude API error: ${error.error?.message || response.statusText}`);
     }
 
     const data = await response.json();

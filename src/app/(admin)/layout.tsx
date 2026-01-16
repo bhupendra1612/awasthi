@@ -55,7 +55,7 @@ export default async function AdminLayout({
         { href: "/admin/enrollments", icon: CreditCard, label: "Enrollments" },
         { href: "/admin/students", icon: Users, label: "Students" },
         { href: "/admin/content", icon: FileVideo, label: "Content" },
-        { href: "/admin/settings", icon: Settings, label: "Settings" },
+        // { href: "/admin/settings", icon: Settings, label: "Settings" }, // Temporarily disabled
     ];
 
     return (

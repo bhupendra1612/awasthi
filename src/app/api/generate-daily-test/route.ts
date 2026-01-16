@@ -101,6 +101,56 @@ export async function POST(request: NextRequest) {
 
         if (!openaiResponse.ok) {
             const errorData = await openaiResponse.json();
+
+            // If quota exceeded, fall back to demo mode
+            if (errorData.error?.code === 'insufficient_quota' || errorData.error?.message?.includes('quota')) {
+                console.log("OpenAI quota exceeded, falling back to demo mode");
+                const mockQuestions = generateMockQuestions(template);
+
+                // Create the test with mock questions
+                const { data: test, error: testError } = await supabase
+                    .from("generated_daily_tests")
+                    .insert({
+                        template_id: template.id,
+                        title: `${template.exam_category} - ${template.subject} (${new Date().toLocaleDateString("en-IN")})`,
+                        exam_category: template.exam_category,
+                        subject: template.subject,
+                        difficulty: template.difficulty,
+                        questions_count: template.questions_count,
+                        duration_minutes: template.duration_minutes,
+                        status: "pending_approval",
+                        approval_deadline: new Date(Date.now() + 60 * 60 * 1000).toISOString(),
+                        test_date: new Date().toISOString().split("T")[0]
+                    })
+                    .select()
+                    .single();
+
+                if (testError) {
+                    return NextResponse.json({ success: false, error: testError.message }, { status: 500 });
+                }
+
+                // Insert mock questions
+                const questionsToInsert = mockQuestions.map((q: any, index: number) => ({
+                    daily_test_id: test.id,
+                    question_text: q.question,
+                    option_a: q.option_a,
+                    option_b: q.option_b,
+                    option_c: q.option_c,
+                    option_d: q.option_d,
+                    correct_option: q.correct_option,
+                    explanation: q.explanation,
+                    order_index: index
+                }));
+
+                await supabase.from("generated_daily_questions").insert(questionsToInsert);
+
+                return NextResponse.json({
+                    success: true,
+                    message: "Test generated in demo mode (OpenAI quota exceeded - add credits to use AI)",
+                    testId: test.id
+                });
+            }
+
             return NextResponse.json({
                 success: false,
                 error: "OpenAI API error: " + (errorData.error?.message || "Unknown error")

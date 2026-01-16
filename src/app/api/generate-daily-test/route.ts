@@ -45,7 +45,7 @@ Return ONLY a valid JSON array in this exact format (no other text):
 ]`;
 
                 const geminiResponse = await fetch(
-                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`,
+                    `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
                     {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
@@ -150,11 +150,12 @@ Return ONLY a valid JSON array in this exact format (no other text):
         return NextResponse.json({
             success: true,
             message: aiProvider === "Demo"
-                ? `Test generated using Demo mode. ${errorMessage ? `(${errorMessage})` : "Add GEMINI_API_KEY to Vercel."}`
-                : `Test generated successfully using ${aiProvider}! 🎉`,
+                ? `⚠️ Test generated using Demo mode. ${errorMessage || "GEMINI_API_KEY not found in environment."}`
+                : `✅ Test generated successfully using ${aiProvider}! 🎉`,
             testId: test.id,
             questionsCount: questions.length,
-            provider: aiProvider
+            provider: aiProvider,
+            debug: aiProvider === "Demo" ? errorMessage : undefined
         });
 
     } catch (error: any) {

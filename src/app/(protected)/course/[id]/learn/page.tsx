@@ -232,66 +232,70 @@ export default function CourseLearnPage() {
     return (
         <div className="min-h-screen bg-gray-50">
             {/* Header */}
-            <div className="bg-white border-b sticky top-0 z-10">
-                <div className="max-w-7xl mx-auto px-4 py-4">
+            <div className="bg-white border-b sticky top-16 md:top-0 z-10">
+                <div className="max-w-7xl mx-auto px-4 py-3 md:py-4">
                     <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3 md:gap-4 flex-1 min-w-0">
                             <Link
                                 href={`/course/${courseId}`}
-                                className="p-2 hover:bg-gray-100 rounded-lg transition"
+                                className="p-2 hover:bg-gray-100 rounded-lg transition flex-shrink-0"
                             >
-                                <ArrowLeft size={20} />
+                                <ArrowLeft size={18} />
                             </Link>
-                            <div>
-                                <h1 className="text-xl font-bold text-gray-900">{course.title}</h1>
-                                <p className="text-sm text-gray-500">
+                            <div className="min-w-0 flex-1">
+                                <h1 className="text-lg md:text-xl font-bold text-gray-900 truncate">{course.title}</h1>
+                                <p className="text-xs md:text-sm text-gray-500 truncate">
                                     {course.class} • {course.subject}
                                 </p>
                             </div>
                         </div>
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
                             <div className="text-right">
-                                <p className="text-sm text-gray-500">Your Progress</p>
-                                <p className="text-lg font-bold text-primary-600">{progress}%</p>
+                                <p className="text-xs md:text-sm text-gray-500">Progress</p>
+                                <p className="text-sm md:text-lg font-bold text-primary-600">{progress}%</p>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="max-w-7xl mx-auto px-4 py-6">
-                <div className="grid lg:grid-cols-3 gap-6">
+            <div className="max-w-7xl mx-auto px-4 py-4 md:py-6">
+                <div className="flex flex-col lg:grid lg:grid-cols-3 gap-4 md:gap-6">
                     {/* Main Content - Video Player */}
-                    <div className="lg:col-span-2 space-y-6">
+                    <div className="lg:col-span-2 space-y-4 md:space-y-6 order-1">
                         {/* Video Player */}
                         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                            {renderVideoPlayer()}
+                            <div className="aspect-video">
+                                {renderVideoPlayer()}
+                            </div>
                             {selectedVideo && (
-                                <div className="p-6">
-                                    <div className="flex items-start justify-between mb-4">
-                                        <div className="flex-1">
-                                            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                                <div className="p-4 md:p-6">
+                                    <div className="flex items-start justify-between mb-3 md:mb-4">
+                                        <div className="flex-1 min-w-0 pr-3">
+                                            <h2 className="text-lg md:text-2xl font-bold text-gray-900 mb-1 md:mb-2 leading-tight">
                                                 {selectedVideo.title}
                                             </h2>
                                             {selectedVideo.description && (
-                                                <p className="text-gray-600">{selectedVideo.description}</p>
+                                                <p className="text-sm md:text-base text-gray-600 line-clamp-2 md:line-clamp-none">
+                                                    {selectedVideo.description}
+                                                </p>
                                             )}
                                         </div>
                                         {selectedVideo.is_free && (
-                                            <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-sm font-medium">
+                                            <span className="px-2 md:px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs md:text-sm font-medium flex-shrink-0">
                                                 FREE
                                             </span>
                                         )}
                                     </div>
-                                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                                    <div className="flex items-center gap-3 md:gap-4 text-xs md:text-sm text-gray-500">
                                         {selectedVideo.duration && (
                                             <div className="flex items-center gap-1">
-                                                <Clock size={16} />
+                                                <Clock size={14} />
                                                 {Math.floor(selectedVideo.duration / 60)} min
                                             </div>
                                         )}
                                         <div className="flex items-center gap-1">
-                                            <Video size={16} />
+                                            <Video size={14} />
                                             {selectedVideo.video_type === "youtube" ? "YouTube" : "HD Video"}
                                         </div>
                                     </div>
@@ -300,37 +304,37 @@ export default function CourseLearnPage() {
                         </div>
 
                         {/* Course Stats */}
-                        <div className="grid grid-cols-3 gap-4">
-                            <div className="bg-white rounded-xl p-4 shadow-sm">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                                        <Video className="text-blue-600" size={20} />
+                        <div className="grid grid-cols-3 gap-3 md:gap-4">
+                            <div className="bg-white rounded-xl p-3 md:p-4 shadow-sm">
+                                <div className="flex items-center gap-2 md:gap-3">
+                                    <div className="w-8 h-8 md:w-10 md:h-10 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <Video className="text-blue-600" size={16} />
                                     </div>
-                                    <div>
-                                        <p className="text-2xl font-bold text-gray-900">{totalVideos}</p>
-                                        <p className="text-sm text-gray-500">Videos</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="bg-white rounded-xl p-4 shadow-sm">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                                        <FileText className="text-green-600" size={20} />
-                                    </div>
-                                    <div>
-                                        <p className="text-2xl font-bold text-gray-900">{totalDocuments}</p>
-                                        <p className="text-sm text-gray-500">Documents</p>
+                                    <div className="min-w-0">
+                                        <p className="text-lg md:text-2xl font-bold text-gray-900">{totalVideos}</p>
+                                        <p className="text-xs md:text-sm text-gray-500">Videos</p>
                                     </div>
                                 </div>
                             </div>
-                            <div className="bg-white rounded-xl p-4 shadow-sm">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                                        <Target className="text-purple-600" size={20} />
+                            <div className="bg-white rounded-xl p-3 md:p-4 shadow-sm">
+                                <div className="flex items-center gap-2 md:gap-3">
+                                    <div className="w-8 h-8 md:w-10 md:h-10 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <FileText className="text-green-600" size={16} />
                                     </div>
-                                    <div>
-                                        <p className="text-2xl font-bold text-gray-900">{progress}%</p>
-                                        <p className="text-sm text-gray-500">Complete</p>
+                                    <div className="min-w-0">
+                                        <p className="text-lg md:text-2xl font-bold text-gray-900">{totalDocuments}</p>
+                                        <p className="text-xs md:text-sm text-gray-500">Documents</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-white rounded-xl p-3 md:p-4 shadow-sm">
+                                <div className="flex items-center gap-2 md:gap-3">
+                                    <div className="w-8 h-8 md:w-10 md:h-10 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                                        <Target className="text-purple-600" size={16} />
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-lg md:text-2xl font-bold text-gray-900">{progress}%</p>
+                                        <p className="text-xs md:text-sm text-gray-500">Complete</p>
                                     </div>
                                 </div>
                             </div>
@@ -338,16 +342,16 @@ export default function CourseLearnPage() {
                     </div>
 
                     {/* Sidebar - Course Content */}
-                    <div className="lg:col-span-1">
-                        <div className="bg-white rounded-xl shadow-sm overflow-hidden sticky top-24">
-                            <div className="p-4 bg-gradient-to-r from-primary-600 to-blue-600 text-white">
-                                <h3 className="font-bold text-lg">Course Content</h3>
-                                <p className="text-sm text-white/80 mt-1">
+                    <div className="lg:col-span-1 order-2">
+                        <div className="bg-white rounded-xl shadow-sm overflow-hidden lg:sticky lg:top-24">
+                            <div className="p-3 md:p-4 bg-gradient-to-r from-primary-600 to-blue-600 text-white">
+                                <h3 className="font-bold text-base md:text-lg">Course Content</h3>
+                                <p className="text-xs md:text-sm text-white/80 mt-1">
                                     {totalVideos} videos • {totalDocuments} documents
                                 </p>
                             </div>
 
-                            <div className="max-h-[calc(100vh-300px)] overflow-y-auto">
+                            <div className="max-h-96 lg:max-h-[calc(100vh-300px)] overflow-y-auto">
                                 {/* Chapters */}
                                 {chapters.map((chapter) => {
                                     const chapterVideos = getVideosByChapter(chapter.id);
@@ -358,21 +362,21 @@ export default function CourseLearnPage() {
                                         <div key={chapter.id} className="border-b">
                                             <button
                                                 onClick={() => toggleChapter(chapter.id)}
-                                                className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition"
+                                                className="w-full p-3 md:p-4 flex items-center justify-between hover:bg-gray-50 transition"
                                             >
-                                                <div className="flex items-center gap-3">
-                                                    <Folder className="text-primary-600" size={20} />
-                                                    <div className="text-left">
-                                                        <p className="font-medium text-gray-900">{chapter.title}</p>
+                                                <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+                                                    <Folder className="text-primary-600 flex-shrink-0" size={18} />
+                                                    <div className="text-left min-w-0 flex-1">
+                                                        <p className="font-medium text-gray-900 text-sm md:text-base truncate">{chapter.title}</p>
                                                         <p className="text-xs text-gray-500">
                                                             {chapterVideos.length} videos, {chapterDocs.length} docs
                                                         </p>
                                                     </div>
                                                 </div>
                                                 {isExpanded ? (
-                                                    <ChevronDown size={20} className="text-gray-400" />
+                                                    <ChevronDown size={18} className="text-gray-400 flex-shrink-0" />
                                                 ) : (
-                                                    <ChevronRight size={20} className="text-gray-400" />
+                                                    <ChevronRight size={18} className="text-gray-400 flex-shrink-0" />
                                                 )}
                                             </button>
 
@@ -383,20 +387,20 @@ export default function CourseLearnPage() {
                                                         <button
                                                             key={video.id}
                                                             onClick={() => setSelectedVideo(video)}
-                                                            className={`w-full p-3 pl-12 flex items-center gap-3 hover:bg-gray-100 transition text-left ${selectedVideo?.id === video.id ? "bg-primary-50 border-l-4 border-primary-600" : ""
+                                                            className={`w-full p-2 md:p-3 pl-8 md:pl-12 flex items-center gap-2 md:gap-3 hover:bg-gray-100 transition text-left ${selectedVideo?.id === video.id ? "bg-primary-50 border-l-4 border-primary-600" : ""
                                                                 }`}
                                                         >
-                                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${selectedVideo?.id === video.id
+                                                            <div className={`w-6 h-6 md:w-8 md:h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${selectedVideo?.id === video.id
                                                                 ? "bg-primary-600"
                                                                 : "bg-white"
                                                                 }`}>
                                                                 <Play
-                                                                    size={16}
+                                                                    size={12}
                                                                     className={selectedVideo?.id === video.id ? "text-white" : "text-gray-600"}
                                                                 />
                                                             </div>
                                                             <div className="flex-1 min-w-0">
-                                                                <p className={`text-sm font-medium truncate ${selectedVideo?.id === video.id
+                                                                <p className={`text-xs md:text-sm font-medium truncate ${selectedVideo?.id === video.id
                                                                     ? "text-primary-600"
                                                                     : "text-gray-900"
                                                                     }`}>
@@ -409,7 +413,7 @@ export default function CourseLearnPage() {
                                                                 )}
                                                             </div>
                                                             {video.is_free && (
-                                                                <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                                                                <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded flex-shrink-0">
                                                                     FREE
                                                                 </span>
                                                             )}
@@ -423,18 +427,18 @@ export default function CourseLearnPage() {
                                                             href={doc.file_url}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
-                                                            className="w-full p-3 pl-12 flex items-center gap-3 hover:bg-gray-100 transition"
+                                                            className="w-full p-2 md:p-3 pl-8 md:pl-12 flex items-center gap-2 md:gap-3 hover:bg-gray-100 transition"
                                                         >
-                                                            <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
-                                                                <FileText size={16} className="text-gray-600" />
+                                                            <div className="w-6 h-6 md:w-8 md:h-8 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
+                                                                <FileText size={12} className="text-gray-600" />
                                                             </div>
                                                             <div className="flex-1 min-w-0">
-                                                                <p className="text-sm font-medium text-gray-900 truncate">
+                                                                <p className="text-xs md:text-sm font-medium text-gray-900 truncate">
                                                                     {doc.title}
                                                                 </p>
                                                                 <p className="text-xs text-gray-500">PDF Document</p>
                                                             </div>
-                                                            <Download size={16} className="text-gray-400" />
+                                                            <Download size={14} className="text-gray-400 flex-shrink-0" />
                                                         </a>
                                                     ))}
                                                 </div>
@@ -448,12 +452,12 @@ export default function CourseLearnPage() {
                                     <div className="border-b">
                                         <button
                                             onClick={() => toggleChapter("uncategorized")}
-                                            className="w-full p-4 flex items-center justify-between hover:bg-gray-50 transition"
+                                            className="w-full p-3 md:p-4 flex items-center justify-between hover:bg-gray-50 transition"
                                         >
-                                            <div className="flex items-center gap-3">
-                                                <BookOpen className="text-gray-600" size={20} />
-                                                <div className="text-left">
-                                                    <p className="font-medium text-gray-900">Other Content</p>
+                                            <div className="flex items-center gap-2 md:gap-3 min-w-0 flex-1">
+                                                <BookOpen className="text-gray-600 flex-shrink-0" size={18} />
+                                                <div className="text-left min-w-0 flex-1">
+                                                    <p className="font-medium text-gray-900 text-sm md:text-base">Other Content</p>
                                                     <p className="text-xs text-gray-500">
                                                         {getVideosByChapter(null).length} videos,{" "}
                                                         {getDocumentsByChapter(null).length} docs
@@ -461,9 +465,9 @@ export default function CourseLearnPage() {
                                                 </div>
                                             </div>
                                             {expandedChapters.has("uncategorized") ? (
-                                                <ChevronDown size={20} className="text-gray-400" />
+                                                <ChevronDown size={18} className="text-gray-400 flex-shrink-0" />
                                             ) : (
-                                                <ChevronRight size={20} className="text-gray-400" />
+                                                <ChevronRight size={18} className="text-gray-400 flex-shrink-0" />
                                             )}
                                         </button>
 
@@ -473,20 +477,20 @@ export default function CourseLearnPage() {
                                                     <button
                                                         key={video.id}
                                                         onClick={() => setSelectedVideo(video)}
-                                                        className={`w-full p-3 pl-12 flex items-center gap-3 hover:bg-gray-100 transition text-left ${selectedVideo?.id === video.id ? "bg-primary-50 border-l-4 border-primary-600" : ""
+                                                        className={`w-full p-2 md:p-3 pl-8 md:pl-12 flex items-center gap-2 md:gap-3 hover:bg-gray-100 transition text-left ${selectedVideo?.id === video.id ? "bg-primary-50 border-l-4 border-primary-600" : ""
                                                             }`}
                                                     >
-                                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${selectedVideo?.id === video.id
+                                                        <div className={`w-6 h-6 md:w-8 md:h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${selectedVideo?.id === video.id
                                                             ? "bg-primary-600"
                                                             : "bg-white"
                                                             }`}>
                                                             <Play
-                                                                size={16}
+                                                                size={12}
                                                                 className={selectedVideo?.id === video.id ? "text-white" : "text-gray-600"}
                                                             />
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className={`text-sm font-medium truncate ${selectedVideo?.id === video.id
+                                                            <p className={`text-xs md:text-sm font-medium truncate ${selectedVideo?.id === video.id
                                                                 ? "text-primary-600"
                                                                 : "text-gray-900"
                                                                 }`}>
@@ -499,7 +503,7 @@ export default function CourseLearnPage() {
                                                             )}
                                                         </div>
                                                         {video.is_free && (
-                                                            <span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded">
+                                                            <span className="text-xs bg-green-100 text-green-700 px-1.5 py-0.5 rounded flex-shrink-0">
                                                                 FREE
                                                             </span>
                                                         )}
@@ -512,18 +516,18 @@ export default function CourseLearnPage() {
                                                         href={doc.file_url}
                                                         target="_blank"
                                                         rel="noopener noreferrer"
-                                                        className="w-full p-3 pl-12 flex items-center gap-3 hover:bg-gray-100 transition"
+                                                        className="w-full p-2 md:p-3 pl-8 md:pl-12 flex items-center gap-2 md:gap-3 hover:bg-gray-100 transition"
                                                     >
-                                                        <div className="w-8 h-8 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
-                                                            <FileText size={16} className="text-gray-600" />
+                                                        <div className="w-6 h-6 md:w-8 md:h-8 bg-white rounded-lg flex items-center justify-center flex-shrink-0">
+                                                            <FileText size={12} className="text-gray-600" />
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="text-sm font-medium text-gray-900 truncate">
+                                                            <p className="text-xs md:text-sm font-medium text-gray-900 truncate">
                                                                 {doc.title}
                                                             </p>
                                                             <p className="text-xs text-gray-500">PDF Document</p>
                                                         </div>
-                                                        <Download size={16} className="text-gray-400" />
+                                                        <Download size={14} className="text-gray-400 flex-shrink-0" />
                                                     </a>
                                                 ))}
                                             </div>

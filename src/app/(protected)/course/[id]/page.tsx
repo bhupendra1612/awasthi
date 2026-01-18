@@ -73,44 +73,102 @@ export default async function CourseDetailPage({
     }
 
     return (
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-            <div className="grid lg:grid-cols-3 gap-8">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 sm:py-8">
+            <div className="flex flex-col lg:grid lg:grid-cols-3 gap-6 lg:gap-8">
+                {/* Mobile Enrollment Card - Show first on mobile */}
+                <div className="lg:hidden">
+                    <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+                        {isEnrolled ? (
+                            <>
+                                <div className="flex items-center gap-2 text-green-600 mb-4">
+                                    <CheckCircle size={20} />
+                                    <span className="font-semibold text-sm sm:text-base">You&apos;re Enrolled!</span>
+                                </div>
+                                <p className="text-gray-500 text-sm mb-4">
+                                    You have full access to all course content.
+                                </p>
+                                {allVideos.length > 0 && (
+                                    <Link
+                                        href={`/course/${id}/learn`}
+                                        className="block w-full bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 transition font-medium text-center text-sm sm:text-base"
+                                    >
+                                        Start Learning
+                                    </Link>
+                                )}
+                            </>
+                        ) : (
+                            <>
+                                <div className="mb-4">
+                                    <div className="flex items-baseline gap-2">
+                                        <span className="text-2xl sm:text-3xl font-bold text-gray-900">
+                                            ₹{course.price.toLocaleString("en-IN")}
+                                        </span>
+                                        {course.original_price > course.price && (
+                                            <span className="text-base sm:text-lg text-gray-400 line-through">
+                                                ₹{course.original_price.toLocaleString("en-IN")}
+                                            </span>
+                                        )}
+                                    </div>
+                                    {course.original_price > course.price && (
+                                        <p className="text-green-600 text-sm mt-1">
+                                            Save ₹{(course.original_price - course.price).toLocaleString("en-IN")}
+                                            ({Math.round((1 - course.price / course.original_price) * 100)}% off)
+                                        </p>
+                                    )}
+                                </div>
+
+                                <Link
+                                    href={`/course/${id}/enroll`}
+                                    className="block w-full bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 transition font-medium text-center mb-3 text-sm sm:text-base"
+                                >
+                                    Enroll Now
+                                </Link>
+
+                                <p className="text-center text-sm text-gray-500">
+                                    Full lifetime access
+                                </p>
+                            </>
+                        )}
+                    </div>
+                </div>
+
                 {/* Main Content */}
-                <div className="lg:col-span-2">
+                <div className="lg:col-span-2 order-2 lg:order-1">
                     {/* Course Header */}
-                    <div className="bg-white rounded-xl p-6 shadow-sm mb-6">
-                        <div className="flex items-center gap-2 mb-3">
-                            <span className="text-sm font-medium text-primary-600 bg-primary-50 px-3 py-1 rounded-full">
+                    <div className="bg-white rounded-xl p-4 sm:p-6 shadow-sm mb-4 sm:mb-6">
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                            <span className="text-xs sm:text-sm font-medium text-primary-600 bg-primary-50 px-2 sm:px-3 py-1 rounded-full">
                                 {course.class}
                             </span>
-                            <span className="text-sm font-medium text-gray-500 bg-gray-100 px-3 py-1 rounded-full">
+                            <span className="text-xs sm:text-sm font-medium text-gray-500 bg-gray-100 px-2 sm:px-3 py-1 rounded-full">
                                 {course.subject}
                             </span>
                             {course.is_combo && (
-                                <span className="text-sm font-medium text-orange-600 bg-orange-50 px-3 py-1 rounded-full">
+                                <span className="text-xs sm:text-sm font-medium text-orange-600 bg-orange-50 px-2 sm:px-3 py-1 rounded-full">
                                     Combo
                                 </span>
                             )}
                         </div>
-                        <h1 className="text-2xl font-bold text-gray-900">{course.title}</h1>
-                        <p className="text-gray-500 mt-2">{course.board}</p>
+                        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 leading-tight">{course.title}</h1>
+                        <p className="text-gray-500 mt-2 text-sm sm:text-base">{course.board}</p>
 
                         {course.description && (
-                            <p className="text-gray-600 mt-4">{course.description}</p>
+                            <p className="text-gray-600 mt-4 text-sm sm:text-base leading-relaxed">{course.description}</p>
                         )}
 
-                        <div className="flex items-center gap-6 mt-6 text-sm text-gray-500">
+                        <div className="flex flex-wrap items-center gap-4 sm:gap-6 mt-4 sm:mt-6 text-xs sm:text-sm text-gray-500">
                             <div className="flex items-center gap-1">
-                                <Star className="text-yellow-400 fill-yellow-400" size={16} />
+                                <Star className="text-yellow-400 fill-yellow-400" size={14} />
                                 <span className="font-medium">4.8</span>
-                                <span>(500+ reviews)</span>
+                                <span className="hidden sm:inline">(500+ reviews)</span>
                             </div>
                             <div className="flex items-center gap-1">
-                                <Users size={16} />
-                                <span>1000+ students</span>
+                                <Users size={14} />
+                                <span className="hidden sm:inline">1000+ students</span>
+                                <span className="sm:hidden">1000+</span>
                             </div>
                             <div className="flex items-center gap-1">
-                                <Clock size={16} />
+                                <Clock size={14} />
                                 <span>6 months</span>
                             </div>
                         </div>
@@ -118,7 +176,7 @@ export default async function CourseDetailPage({
 
                     {/* Course Content with Folders */}
                     <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-                        <div className="p-6 border-b">
+                        <div className="p-4 sm:p-6 border-b">
                             <h2 className="text-lg font-bold text-gray-900">Course Content</h2>
                             <p className="text-sm text-gray-500 mt-1">
                                 {totalVideos} videos • {totalDocuments} PDFs
@@ -151,20 +209,20 @@ export default async function CourseDetailPage({
                                             </div>
 
                                             {/* Videos in chapter */}
-                                            <div className="ml-8 space-y-2">
+                                            <div className="ml-4 sm:ml-8 space-y-2">
                                                 {chapterVideos.map((video, videoIndex) => {
                                                     const canAccess = isEnrolled || video.is_free;
                                                     return (
                                                         <div
                                                             key={video.id}
-                                                            className={`flex items-center gap-3 p-3 rounded-lg ${canAccess ? "hover:bg-gray-50" : "opacity-60"
+                                                            className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg ${canAccess ? "hover:bg-gray-50" : "opacity-60"
                                                                 }`}
                                                         >
-                                                            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                                                <Play className="text-blue-600" size={16} />
+                                                            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                                                <Play className="text-blue-600" size={12} />
                                                             </div>
                                                             <div className="flex-1 min-w-0">
-                                                                <p className="font-medium text-gray-900 text-sm truncate">
+                                                                <p className="font-medium text-gray-900 text-xs sm:text-sm truncate">
                                                                     {videoIndex + 1}. {video.title}
                                                                 </p>
                                                                 <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -178,14 +236,14 @@ export default async function CourseDetailPage({
                                                                 </div>
                                                             </div>
                                                             {video.is_free && (
-                                                                <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
+                                                                <span className="text-xs font-medium text-green-600 bg-green-50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
                                                                     FREE
                                                                 </span>
                                                             )}
                                                             {canAccess ? (
-                                                                <ChevronRight className="text-primary-600" size={18} />
+                                                                <ChevronRight className="text-primary-600" size={16} />
                                                             ) : (
-                                                                <Lock className="text-gray-400" size={18} />
+                                                                <Lock className="text-gray-400" size={16} />
                                                             )}
                                                         </div>
                                                     );
@@ -197,22 +255,22 @@ export default async function CourseDetailPage({
                                                     return (
                                                         <div
                                                             key={doc.id}
-                                                            className={`flex items-center gap-3 p-3 rounded-lg ${canAccess ? "hover:bg-gray-50" : "opacity-60"
+                                                            className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg ${canAccess ? "hover:bg-gray-50" : "opacity-60"
                                                                 }`}
                                                         >
-                                                            <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
-                                                                <FileText className="text-red-600" size={16} />
+                                                            <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                                                                <FileText className="text-red-600" size={12} />
                                                             </div>
                                                             <div className="flex-1 min-w-0">
-                                                                <p className="font-medium text-gray-900 text-sm truncate">
+                                                                <p className="font-medium text-gray-900 text-xs sm:text-sm truncate">
                                                                     {doc.title}
                                                                 </p>
                                                                 <p className="text-xs text-gray-500">PDF Document</p>
                                                             </div>
                                                             {canAccess ? (
-                                                                <Download className="text-primary-600" size={18} />
+                                                                <Download className="text-primary-600" size={16} />
                                                             ) : (
-                                                                <Lock className="text-gray-400" size={18} />
+                                                                <Lock className="text-gray-400" size={16} />
                                                             )}
                                                         </div>
                                                     );
@@ -235,20 +293,20 @@ export default async function CourseDetailPage({
                                             </div>
                                         </div>
 
-                                        <div className="ml-8 space-y-2">
+                                        <div className="ml-4 sm:ml-8 space-y-2">
                                             {getVideosByChapter(null).map((video, videoIndex) => {
                                                 const canAccess = isEnrolled || video.is_free;
                                                 return (
                                                     <div
                                                         key={video.id}
-                                                        className={`flex items-center gap-3 p-3 rounded-lg ${canAccess ? "hover:bg-gray-50" : "opacity-60"
+                                                        className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg ${canAccess ? "hover:bg-gray-50" : "opacity-60"
                                                             }`}
                                                     >
-                                                        <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
-                                                            <Play className="text-blue-600" size={16} />
+                                                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                                            <Play className="text-blue-600" size={12} />
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="font-medium text-gray-900 text-sm truncate">
+                                                            <p className="font-medium text-gray-900 text-xs sm:text-sm truncate">
                                                                 {videoIndex + 1}. {video.title}
                                                             </p>
                                                             <div className="flex items-center gap-2 text-xs text-gray-500">
@@ -262,14 +320,14 @@ export default async function CourseDetailPage({
                                                             </div>
                                                         </div>
                                                         {video.is_free && (
-                                                            <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
+                                                            <span className="text-xs font-medium text-green-600 bg-green-50 px-1.5 sm:px-2 py-0.5 sm:py-1 rounded">
                                                                 FREE
                                                             </span>
                                                         )}
                                                         {canAccess ? (
-                                                            <ChevronRight className="text-primary-600" size={18} />
+                                                            <ChevronRight className="text-primary-600" size={16} />
                                                         ) : (
-                                                            <Lock className="text-gray-400" size={18} />
+                                                            <Lock className="text-gray-400" size={16} />
                                                         )}
                                                     </div>
                                                 );
@@ -280,22 +338,22 @@ export default async function CourseDetailPage({
                                                 return (
                                                     <div
                                                         key={doc.id}
-                                                        className={`flex items-center gap-3 p-3 rounded-lg ${canAccess ? "hover:bg-gray-50" : "opacity-60"
+                                                        className={`flex items-center gap-2 sm:gap-3 p-2 sm:p-3 rounded-lg ${canAccess ? "hover:bg-gray-50" : "opacity-60"
                                                             }`}
                                                     >
-                                                        <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
-                                                            <FileText className="text-red-600" size={16} />
+                                                        <div className="w-6 h-6 sm:w-8 sm:h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                                                            <FileText className="text-red-600" size={12} />
                                                         </div>
                                                         <div className="flex-1 min-w-0">
-                                                            <p className="font-medium text-gray-900 text-sm truncate">
+                                                            <p className="font-medium text-gray-900 text-xs sm:text-sm truncate">
                                                                 {doc.title}
                                                             </p>
                                                             <p className="text-xs text-gray-500">PDF Document</p>
                                                         </div>
                                                         {canAccess ? (
-                                                            <Download className="text-primary-600" size={18} />
+                                                            <Download className="text-primary-600" size={16} />
                                                         ) : (
-                                                            <Lock className="text-gray-400" size={18} />
+                                                            <Lock className="text-gray-400" size={16} />
                                                         )}
                                                     </div>
                                                 );
@@ -305,16 +363,16 @@ export default async function CourseDetailPage({
                                 )}
                             </div>
                         ) : (
-                            <div className="p-8 text-center">
-                                <BookOpen className="mx-auto text-gray-400 mb-3" size={40} />
-                                <p className="text-gray-500">Content coming soon</p>
+                            <div className="p-6 sm:p-8 text-center">
+                                <BookOpen className="mx-auto text-gray-400 mb-3" size={32} />
+                                <p className="text-gray-500 text-sm sm:text-base">Content coming soon</p>
                             </div>
                         )}
                     </div>
                 </div>
 
-                {/* Sidebar - Enrollment Card */}
-                <div className="lg:col-span-1">
+                {/* Desktop Sidebar - Enrollment Card */}
+                <div className="hidden lg:block lg:col-span-1 order-1 lg:order-2">
                     <div className="bg-white rounded-xl shadow-sm p-6 sticky top-24">
                         {isEnrolled ? (
                             <>

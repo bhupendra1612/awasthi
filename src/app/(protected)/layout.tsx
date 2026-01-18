@@ -135,50 +135,50 @@ export default async function ProtectedLayout({
 
                 {/* Mobile Navigation */}
                 <div className="md:hidden border-t border-gray-100 bg-white">
-                    <div className="flex justify-around py-2">
+                    <div className="flex justify-around py-3">
                         <Link
                             href="/dashboard"
-                            className="flex flex-col items-center gap-1 px-4 py-2 text-gray-600 hover:text-primary-600 transition"
+                            className="flex flex-col items-center gap-1 px-3 py-2 text-gray-600 hover:text-primary-600 transition"
                         >
-                            <LayoutDashboard size={20} />
+                            <LayoutDashboard size={18} />
                             <span className="text-xs">Dashboard</span>
                         </Link>
                         <Link
                             href="/my-courses"
-                            className="flex flex-col items-center gap-1 px-4 py-2 text-gray-600 hover:text-primary-600 transition"
+                            className="flex flex-col items-center gap-1 px-3 py-2 text-gray-600 hover:text-primary-600 transition"
                         >
-                            <BookOpen size={20} />
+                            <BookOpen size={18} />
                             <span className="text-xs">My Courses</span>
                         </Link>
                         <Link
                             href="/tests"
-                            className="flex flex-col items-center gap-1 px-4 py-2 text-gray-600 hover:text-primary-600 transition"
+                            className="flex flex-col items-center gap-1 px-3 py-2 text-gray-600 hover:text-primary-600 transition"
                         >
-                            <PenTool size={20} />
+                            <PenTool size={18} />
                             <span className="text-xs">Tests</span>
                         </Link>
                         <Link
                             href="/courses"
-                            className="flex flex-col items-center gap-1 px-4 py-2 text-gray-600 hover:text-primary-600 transition"
+                            className="flex flex-col items-center gap-1 px-3 py-2 text-gray-600 hover:text-primary-600 transition"
                         >
-                            <GraduationCap size={20} />
+                            <GraduationCap size={18} />
                             <span className="text-xs">Explore</span>
                         </Link>
                         {isAdmin && (
                             <Link
                                 href="/admin"
-                                className="flex flex-col items-center gap-1 px-4 py-2 text-orange-600 hover:text-orange-700 transition"
+                                className="flex flex-col items-center gap-1 px-3 py-2 text-orange-600 hover:text-orange-700 transition"
                             >
-                                <Settings size={20} />
+                                <Settings size={18} />
                                 <span className="text-xs">Admin</span>
                             </Link>
                         )}
                         {isTeacher && (
                             <Link
                                 href="/teacher"
-                                className="flex flex-col items-center gap-1 px-4 py-2 text-purple-600 hover:text-purple-700 transition"
+                                className="flex flex-col items-center gap-1 px-3 py-2 text-purple-600 hover:text-purple-700 transition"
                             >
-                                <UserCheck size={20} />
+                                <UserCheck size={18} />
                                 <span className="text-xs">Teacher</span>
                             </Link>
                         )}
@@ -187,7 +187,7 @@ export default async function ProtectedLayout({
             </header>
 
             {/* Main Content with padding for fixed header */}
-            <main className="pt-16 md:pt-16">{children}</main>
+            <main className="pt-32 md:pt-16">{children}</main>
         </div>
     );
 }

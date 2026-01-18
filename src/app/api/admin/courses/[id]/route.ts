@@ -1,62 +1,74 @@
 import { createClient } from "@/lib/supabase/server";
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 
-export async function PUT(request: Request, { params }: { params: { id: string } }) {
+export async function PUT(
+    request: NextRequest,
+    { params }: { params: { id: string } }
+) {
     try {
         const supabase = await createClient();
         const courseId = params.id;
 
-        // Check if user is admin
+        // Check authentication
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) {
-            return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+            return NextResponse.json(
+                { error: "Unauthorized" },
+                { status: 401 }
+            );
         }
 
+        // Check if user is admin
         const { data: profile } = await supabase
             .from("profiles")
             .select("role")
             .eq("id", user.id)
             .single();
 
-        if (!profile || profile.role !== "admin") {
-            return NextResponse.json({ error: "Only admins can update courses" }, { status: 403 });
+        if (profile?.role !== "admin") {
+            return NextResponse.json(
+                { error: "Forbidden - Admin access required" },
+                { status: 403 }
+            );
         }
 
-        const body = await request.json();
+        // Get update data from request
+        const rawData = await request.json();
+        console.log("=== RAW UPDATE DATA ===");
+        console.log(JSON.stringify(rawData, null, 2));
 
-        // Prepare update data with only valid columns
-        const updateData: any = {
-            title: body.title,
-            description: body.description,
-            class: body.class,
-            subject: body.subject,
-            is_combo: body.is_combo,
-            is_published: body.is_published,
-            updated_at: new Date().toISOString(),
-        };
+        // Clean the data - remove undefined, null, empty string values, or string "undefined"
+        const updateData: any = {};
 
-        // Handle price fields
-        if (body.price !== undefined) {
-            const priceNum = parseFloat(body.price);
-            updateData.price = isNaN(priceNum) ? 0 : priceNum;
+        for (const [key, value] of Object.entries(rawData)) {
+            // Skip if value is problematic
+            if (
+                value === undefined ||
+                value === null ||
+                value === "" ||
+                value === "undefined" ||
+                value === "null"
+            ) {
+                console.log(`⚠️ Skipping field "${key}" with problematic value:`, value);
+                continue;
+            }
+
+            // Add the clean value
+            updateData[key] = value;
         }
 
-        if (body.original_price !== undefined) {
-            const originalPriceNum = parseFloat(body.original_price);
-            updateData.original_price = isNaN(originalPriceNum) ? null : originalPriceNum;
+        // Convert price fields to numbers if they exist
+        if (updateData.price !== undefined) {
+            updateData.price = typeof updateData.price === 'string' ? parseFloat(updateData.price) : updateData.price;
+        }
+        if (updateData.original_price !== undefined) {
+            updateData.original_price = typeof updateData.original_price === 'string' ? parseFloat(updateData.original_price) : updateData.original_price;
         }
 
-        // Handle thumbnail URL
-        if (body.thumbnail_url !== undefined) {
-            updateData.thumbnail_url = body.thumbnail_url || null;
-        }
+        console.log("=== CLEANED UPDATE DATA ===");
+        console.log(JSON.stringify(updateData, null, 2));
 
-        // Add optional columns if they exist
-        if (body.board) updateData.board = body.board;
-        if (body.duration) updateData.duration = body.duration;
-        if (typeof body.is_featured === 'boolean') updateData.is_featured = body.is_featured;
-        if (typeof body.is_trending === 'boolean') updateData.is_trending = body.is_trending;
-
+        // Update the course
         const { data, error } = await supabase
             .from("courses")
             .update(updateData)
@@ -66,18 +78,63 @@ export async function PUT(request: Request, { params }: { params: { id: string }
 
         if (error) {
             console.error("Database error:", error);
-            return NextResponse.json({
-                error: "Database error",
-                details: error.message
-            }, { status: 500 });
+            return NextResponse.json(
+                {
+                    error: "Failed to update course",
+                    details: error.message,
+                    code: error.code,
+                    hint: error.hint
+                },
+                { status: 500 }
+            );
         }
 
-        return NextResponse.json({ success: true, data });
+        return NextResponse.json({
+            success: true,
+            data,
+            message: "Course updated successfully"
+        });
+
     } catch (error) {
         console.error("API error:", error);
-        return NextResponse.json({
-            error: "Internal server error",
-            details: error instanceof Error ? error.message : "Unknown error"
-        }, { status: 500 });
+        return NextResponse.json(
+            {
+                error: "Internal server error",
+                details: error instanceof Error ? error.message : "Unknown error"
+            },
+            { status: 500 }
+        );
+    }
+}
+
+export async function GET(
+    request: NextRequest,
+    { params }: { params: { id: string } }
+) {
+    try {
+        const supabase = await createClient();
+        const courseId = params.id;
+
+        const { data, error } = await supabase
+            .from("courses")
+            .select("*")
+            .eq("id", courseId)
+            .single();
+
+        if (error) {
+            return NextResponse.json(
+                { error: "Course not found", details: error.message },
+                { status: 404 }
+            );
+        }
+
+        return NextResponse.json({ data });
+
+    } catch (error) {
+        console.error("API error:", error);
+        return NextResponse.json(
+            { error: "Internal server error" },
+            { status: 500 }
+        );
     }
 }

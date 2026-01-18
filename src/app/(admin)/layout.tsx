@@ -25,6 +25,7 @@ export default async function AdminLayout({
 
     // Try to get profile, but don't fail if RLS blocks it
     let isAdminByRole = false;
+    let userRole = null;
     try {
         const { data: profile } = await supabase
             .from("profiles")
@@ -33,6 +34,7 @@ export default async function AdminLayout({
             .single();
 
         isAdminByRole = profile?.role === "admin";
+        userRole = profile?.role;
     } catch (error) {
         console.log("Profile fetch error (RLS may be blocking):", error);
     }
@@ -46,16 +48,15 @@ export default async function AdminLayout({
     const navItems = [
         { href: "/admin", icon: LayoutDashboard, label: "Dashboard" },
         { href: "/admin/courses", icon: BookOpen, label: "Courses" },
+        { href: "/admin/teacher-courses", icon: ClipboardCheck, label: "Teacher Approvals" },
         { href: "/admin/tests", icon: ClipboardList, label: "Test Series" },
         { href: "/admin/daily-tests", icon: Sparkles, label: "AI Daily Tests" },
-        { href: "/admin/approvals", icon: ClipboardCheck, label: "Approvals" },
         { href: "/admin/teachers", icon: UserCheck, label: "Teachers" },
         { href: "/admin/homepage-teachers", icon: UserCircle, label: "Homepage Teachers" },
         { href: "/admin/blogs", icon: FileText, label: "Blogs" },
         { href: "/admin/enrollments", icon: CreditCard, label: "Enrollments" },
         { href: "/admin/students", icon: Users, label: "Students" },
         { href: "/admin/content", icon: FileVideo, label: "Content" },
-        // { href: "/admin/settings", icon: Settings, label: "Settings" }, // Temporarily disabled
     ];
 
     return (

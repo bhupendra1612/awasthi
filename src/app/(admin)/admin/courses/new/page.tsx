@@ -103,6 +103,9 @@ export default function NewCoursePage() {
         setError("");
 
         try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("Not authenticated");
+
             const courseTitle = formData.exam_name
                 ? `${formData.exam_name} - ${formData.subject}`
                 : formData.title;
@@ -115,8 +118,12 @@ export default function NewCoursePage() {
                 price: parseInt(formData.price) || 0,
                 original_price: formData.original_price ? parseInt(formData.original_price) : null,
                 is_combo: formData.is_combo,
+                is_featured: formData.is_featured,
+                is_trending: formData.is_trending,
                 thumbnail_url: formData.thumbnail_url,
                 is_published: false,
+                created_by: user.id,
+                created_by_role: "admin",
             });
 
             if (error) throw error;

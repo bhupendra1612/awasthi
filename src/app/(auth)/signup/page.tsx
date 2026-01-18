@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Lock, Mail, Loader2, Eye, EyeOff, CheckCircle, User, ArrowRight, Sparkles, BookOpen, Award, Users, GraduationCap } from "lucide-react";
+import { Lock, Mail, Loader2, Eye, EyeOff, CheckCircle, User, ArrowRight, Sparkles, BookOpen, Award, Users, GraduationCap, FileText, Shield, Train } from "lucide-react";
 
 type AuthMethod = "password" | "otp";
 type SignupStep = "form" | "verify";
@@ -15,14 +15,11 @@ export default function SignupPage() {
     const [method, setMethod] = useState<AuthMethod>("password");
     const [step, setStep] = useState<SignupStep>("form");
 
-    // Form state
     const [name, setName] = useState("");
     const [email, setEmail] = useState("");
     const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
     const [showPassword, setShowPassword] = useState(false);
-
-    // OTP state
     const [otp, setOtp] = useState("");
 
     const [loading, setLoading] = useState(false);
@@ -30,7 +27,47 @@ export default function SignupPage() {
 
     const supabase = createClient();
 
-    // Password signup - Step 1: Create account and send OTP
+    // Function to create user profile
+    const createUserProfile = async (userId: string, fullName: string, userEmail: string) => {
+        try {
+            // First check if profile already exists (database trigger might have created it)
+            const { data: existingProfile } = await supabase
+                .from('profiles')
+                .select('id')
+                .eq('id', userId)
+                .single();
+
+            if (existingProfile) {
+                // Profile already exists, no need to create
+                return;
+            }
+
+            // Create profile if it doesn't exist
+            const { error } = await supabase
+                .from('profiles')
+                .insert({
+                    id: userId,
+                    full_name: fullName,
+                    email: userEmail,
+                    role: 'student', // Default role
+                    created_at: new Date().toISOString(),
+                    updated_at: new Date().toISOString()
+                });
+
+            if (error && !error.message.includes('duplicate key')) {
+                console.error('Error creating profile:', error);
+            }
+        } catch (error) {
+            // Ignore duplicate key errors as they're expected
+            if (error && typeof error === 'object' && 'message' in error) {
+                const errorMessage = (error as any).message;
+                if (!errorMessage.includes('duplicate key') && !errorMessage.includes('already exists')) {
+                    console.error('Error creating profile:', error);
+                }
+            }
+        }
+    };
+
     const handlePasswordSignup = async (e: React.FormEvent) => {
         e.preventDefault();
         setError("");
@@ -48,7 +85,7 @@ export default function SignupPage() {
         setLoading(true);
 
         try {
-            const { error: signUpError } = await supabase.auth.signUp({
+            const { data, error: signUpError } = await supabase.auth.signUp({
                 email,
                 password,
                 options: {
@@ -62,6 +99,11 @@ export default function SignupPage() {
                 setError(signUpError.message);
                 setLoading(false);
                 return;
+            }
+
+            // If user is created and confirmed immediately, create profile
+            if (data.user && data.user.email_confirmed_at) {
+                await createUserProfile(data.user.id, name, email);
             }
 
             const { error: otpError } = await supabase.auth.signInWithOtp({
@@ -83,19 +125,39 @@ export default function SignupPage() {
         }
     };
 
-    // Email OTP signup - Step 1: Send OTP
     const handleSendOtp = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError("");
 
         try {
-            const { error } = await supabase.auth.signInWithOtp({
+            // First create the user account
+            const { data, error: signUpError } = await supabase.auth.signUp({
                 email,
+                password: Math.random().toString(36).slice(-12) + "A1!", // Temporary password
                 options: {
                     data: {
                         full_name: name,
                     },
+                },
+            });
+
+            if (signUpError && !signUpError.message.includes("already registered")) {
+                setError(signUpError.message);
+                setLoading(false);
+                return;
+            }
+
+            // If user is created and confirmed immediately, create profile
+            if (data?.user && data.user.email_confirmed_at) {
+                await createUserProfile(data.user.id, name, email);
+            }
+
+            // Then send OTP for verification
+            const { error } = await supabase.auth.signInWithOtp({
+                email,
+                options: {
+                    shouldCreateUser: false,
                 },
             });
 
@@ -111,14 +173,13 @@ export default function SignupPage() {
         }
     };
 
-    // Step 2: Verify OTP
     const handleVerifyOtp = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setError("");
 
         try {
-            const { error } = await supabase.auth.verifyOtp({
+            const { data, error } = await supabase.auth.verifyOtp({
                 email,
                 token: otp,
                 type: "email",
@@ -127,6 +188,10 @@ export default function SignupPage() {
             if (error) {
                 setError(error.message);
             } else {
+                // Create profile after successful verification
+                if (data.user) {
+                    await createUserProfile(data.user.id, name, email);
+                }
                 router.push("/dashboard");
                 router.refresh();
             }
@@ -137,7 +202,6 @@ export default function SignupPage() {
         }
     };
 
-    // Resend OTP
     const handleResendOtp = async () => {
         setLoading(true);
         setError("");
@@ -167,7 +231,6 @@ export default function SignupPage() {
     if (step === "verify") {
         return (
             <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-primary-50 via-white to-blue-50">
-                {/* Background decorations */}
                 <div className="absolute inset-0 overflow-hidden pointer-events-none">
                     <div className="absolute top-20 left-20 w-72 h-72 bg-primary-200 rounded-full blur-3xl opacity-30" />
                     <div className="absolute bottom-20 right-20 w-96 h-96 bg-blue-200 rounded-full blur-3xl opacity-30" />
@@ -256,52 +319,59 @@ export default function SignupPage() {
         <div className="min-h-screen flex">
             {/* Left Side - Branding */}
             <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-green-600 via-emerald-600 to-teal-700 relative overflow-hidden">
-                {/* Background decorations */}
                 <div className="absolute inset-0">
                     <div className="absolute top-20 left-20 w-72 h-72 bg-white/10 rounded-full blur-3xl" />
                     <div className="absolute bottom-20 right-20 w-96 h-96 bg-white/10 rounded-full blur-3xl" />
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-white/10 rounded-full" />
-                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-white/10 rounded-full" />
 
-                    {/* Math symbols */}
-                    <div className="absolute top-20 right-20 text-6xl text-white/10 animate-float">∑</div>
-                    <div className="absolute bottom-32 left-20 text-5xl text-white/10 animate-float [animation-delay:1s]">π</div>
-                    <div className="absolute top-1/3 left-10 text-4xl text-white/10 animate-float [animation-delay:0.5s]">√</div>
+                    {/* Floating icons */}
+                    <div className="absolute top-20 right-20 text-6xl text-white/10 animate-float">🎯</div>
+                    <div className="absolute bottom-32 left-20 text-5xl text-white/10 animate-float [animation-delay:1s]">📚</div>
+                    <div className="absolute top-1/3 left-10 text-4xl text-white/10 animate-float [animation-delay:0.5s]">🏆</div>
                 </div>
 
                 <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20">
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-3 mb-12">
-                        <div className="w-14 h-14 relative">
+                        <div className="w-14 h-14 relative rounded-xl overflow-hidden bg-white">
                             <Image
                                 src="/images/logo.png"
-                                alt="Bard of Maths Logo"
+                                alt="Awasthi Classes Logo"
                                 fill
-                                className="object-contain"
+                                className="object-cover"
                             />
                         </div>
                         <div>
-                            <span className="text-2xl font-bold text-white">Bard of Maths</span>
-                            <p className="text-sm text-white/70">Excellence in Education</p>
+                            <span className="text-2xl font-bold text-white">Awasthi Classes</span>
+                            <p className="text-sm text-white/70">Government Exam Preparation</p>
                         </div>
                     </Link>
 
                     {/* Welcome Text */}
                     <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight mb-6">
                         Start your journey to
-                        <span className="block text-yellow-300">academic excellence!</span>
+                        <span className="block text-yellow-300">government job success!</span>
                     </h1>
                     <p className="text-lg text-white/80 mb-10 max-w-md">
-                        Join thousands of students who have transformed their grades with our expert-led courses.
+                        Join thousands of students preparing for SSC, Railway, Bank, RPSC, RSMSSB, Police & other government exams.
                     </p>
+
+                    {/* Exam Categories */}
+                    <div className="flex flex-wrap gap-2 mb-8">
+                        {["SSC", "Railway", "Bank", "RPSC", "RSMSSB", "Police"].map((exam) => (
+                            <span key={exam} className="bg-white/20 text-white px-3 py-1.5 rounded-full text-sm font-medium">
+                                {exam}
+                            </span>
+                        ))}
+                    </div>
 
                     {/* Benefits */}
                     <div className="space-y-4">
                         {[
-                            { icon: BookOpen, text: "Access 50+ expert-led courses" },
-                            { icon: GraduationCap, text: "Learn from experienced teachers" },
-                            { icon: Award, text: "Get certified on completion" },
-                            { icon: Users, text: "Join 5000+ successful students" },
+                            { icon: BookOpen, text: "HD Video Lectures by Expert Faculty" },
+                            { icon: FileText, text: "Complete PDF Notes & Study Material" },
+                            { icon: GraduationCap, text: "Daily Practice Tests & Mock Exams" },
+                            { icon: Users, text: "Join 1000+ Successful Students" },
                         ].map((item, i) => (
                             <div key={i} className="flex items-center gap-3 text-white/90">
                                 <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
@@ -315,15 +385,15 @@ export default function SignupPage() {
                     {/* Testimonial */}
                     <div className="mt-12 bg-white/10 backdrop-blur-sm rounded-2xl p-6 border border-white/20">
                         <p className="text-white/90 italic mb-4">
-                            &ldquo;Bard of Maths helped me score 98% in my board exams. The teachers are amazing!&rdquo;
+                            &ldquo;Awasthi Classes helped me crack SSC CGL in my first attempt. The faculty and study material are excellent!&rdquo;
                         </p>
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-yellow-400 rounded-full flex items-center justify-center text-yellow-900 font-bold">
-                                P
+                                R
                             </div>
                             <div>
-                                <p className="text-white font-medium">Priya Sharma</p>
-                                <p className="text-white/60 text-sm">Class 12 - Board Topper</p>
+                                <p className="text-white font-medium">Rajesh Kumar</p>
+                                <p className="text-white/60 text-sm">SSC CGL Selected - AIR 245</p>
                             </div>
                         </div>
                     </div>
@@ -336,16 +406,16 @@ export default function SignupPage() {
                     {/* Mobile Logo */}
                     <div className="lg:hidden flex justify-center mb-8">
                         <Link href="/" className="flex items-center gap-3">
-                            <div className="w-12 h-12 relative">
+                            <div className="w-12 h-12 relative rounded-xl overflow-hidden">
                                 <Image
                                     src="/images/logo.png"
-                                    alt="Bard of Maths Logo"
+                                    alt="Awasthi Classes Logo"
                                     fill
-                                    className="object-contain"
+                                    className="object-cover"
                                 />
                             </div>
                             <span className="text-xl font-bold bg-gradient-to-r from-primary-600 to-blue-600 bg-clip-text text-transparent">
-                                Bard of Maths
+                                Awasthi Classes
                             </span>
                         </Link>
                     </div>
@@ -361,7 +431,7 @@ export default function SignupPage() {
                                 Create Your Account
                             </h1>
                             <p className="text-gray-500 mt-2">
-                                Start learning in minutes
+                                Start your exam preparation today
                             </p>
                         </div>
 
@@ -555,15 +625,10 @@ export default function SignupPage() {
                                 <div className="mt-6 p-4 bg-green-50 rounded-xl">
                                     <p className="text-sm font-medium text-green-800 mb-3">What you&apos;ll get:</p>
                                     <div className="grid grid-cols-2 gap-2">
-                                        {[
-                                            "Course videos",
-                                            "Progress tracking",
-                                            "Study materials",
-                                            "Doubt support",
-                                        ].map((benefit, i) => (
-                                            <div key={i} className="flex items-center gap-2 text-sm text-green-700">
+                                        {["Video Lectures", "Daily Tests", "PDF Notes", "Doubt Support"].map((item) => (
+                                            <div key={item} className="flex items-center gap-2 text-sm text-green-700">
                                                 <CheckCircle size={14} />
-                                                {benefit}
+                                                {item}
                                             </div>
                                         ))}
                                     </div>

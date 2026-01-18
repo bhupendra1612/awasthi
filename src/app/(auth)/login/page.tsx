@@ -5,7 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Lock, Mail, Loader2, Eye, EyeOff, ArrowRight, Sparkles, Users, Award, BookOpen, CheckCircle } from "lucide-react";
+import { Lock, Mail, Loader2, Eye, EyeOff, ArrowRight, Sparkles, BookOpen, Award, CheckCircle, GraduationCap, FileText, Shield } from "lucide-react";
 
 type AuthMethod = "password" | "otp";
 
@@ -30,15 +30,17 @@ export default function LoginPage() {
         setError("");
 
         try {
-            const { error } = await supabase.auth.signInWithPassword({
+            const { data, error } = await supabase.auth.signInWithPassword({
                 email,
                 password,
             });
 
             if (error) {
                 setError(error.message);
-            } else {
-                router.push("/dashboard");
+            } else if (data.user) {
+                // Redirect all users to dashboard (protected route)
+                // Admin/Teacher buttons in header will provide access to management dashboards
+                router.push('/dashboard');
                 router.refresh();
             }
         } catch {
@@ -79,7 +81,7 @@ export default function LoginPage() {
         setError("");
 
         try {
-            const { error } = await supabase.auth.verifyOtp({
+            const { data, error } = await supabase.auth.verifyOtp({
                 email,
                 token: otp,
                 type: "email",
@@ -87,8 +89,10 @@ export default function LoginPage() {
 
             if (error) {
                 setError(error.message);
-            } else {
-                router.push("/dashboard");
+            } else if (data.user) {
+                // Redirect all users to dashboard (protected route)
+                // Admin/Teacher buttons in header will provide access to management dashboards
+                router.push('/dashboard');
                 router.refresh();
             }
         } catch {
@@ -109,44 +113,44 @@ export default function LoginPage() {
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] border border-white/10 rounded-full" />
                     <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] border border-white/10 rounded-full" />
 
-                    {/* Math symbols */}
-                    <div className="absolute top-20 right-20 text-6xl text-white/10 animate-float">π</div>
-                    <div className="absolute bottom-32 left-20 text-5xl text-white/10 animate-float [animation-delay:1s]">∑</div>
-                    <div className="absolute top-1/3 left-10 text-4xl text-white/10 animate-float [animation-delay:0.5s]">∫</div>
+                    {/* Floating icons */}
+                    <div className="absolute top-20 right-20 text-6xl text-white/10 animate-float">📚</div>
+                    <div className="absolute bottom-32 left-20 text-5xl text-white/10 animate-float [animation-delay:1s]">🎯</div>
+                    <div className="absolute top-1/3 left-10 text-4xl text-white/10 animate-float [animation-delay:0.5s]">🏆</div>
                 </div>
 
                 <div className="relative z-10 flex flex-col justify-center px-12 xl:px-20">
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-3 mb-12">
-                        <div className="w-14 h-14 relative">
+                        <div className="w-14 h-14 relative rounded-xl overflow-hidden bg-white">
                             <Image
                                 src="/images/logo.png"
-                                alt="Bard of Maths Logo"
+                                alt="Awasthi Classes Logo"
                                 fill
-                                className="object-contain"
+                                className="object-cover"
                             />
                         </div>
                         <div>
-                            <span className="text-2xl font-bold text-white">Bard of Maths</span>
-                            <p className="text-sm text-white/70">Excellence in Education</p>
+                            <span className="text-2xl font-bold text-white">Awasthi Classes</span>
+                            <p className="text-sm text-white/70">Government Exam Preparation</p>
                         </div>
                     </Link>
 
                     {/* Welcome Text */}
                     <h1 className="text-4xl xl:text-5xl font-bold text-white leading-tight mb-6">
                         Welcome back to your
-                        <span className="block text-yellow-300">learning journey!</span>
+                        <span className="block text-yellow-300">success journey!</span>
                     </h1>
                     <p className="text-lg text-white/80 mb-10 max-w-md">
-                        Continue where you left off. Access your courses, track progress, and achieve your academic goals.
+                        Continue your preparation for SSC, Railway, Bank, RPSC, RSMSSB, Police & other government exams.
                     </p>
 
                     {/* Features */}
                     <div className="space-y-4">
                         {[
                             { icon: BookOpen, text: "Access all your enrolled courses" },
-                            { icon: CheckCircle, text: "Track your learning progress" },
-                            { icon: Award, text: "Earn certificates on completion" },
+                            { icon: FileText, text: "Practice with daily tests" },
+                            { icon: Award, text: "Track your exam preparation" },
                         ].map((item, i) => (
                             <div key={i} className="flex items-center gap-3 text-white/90">
                                 <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
@@ -160,16 +164,16 @@ export default function LoginPage() {
                     {/* Stats */}
                     <div className="flex gap-8 mt-12 pt-8 border-t border-white/20">
                         <div>
-                            <p className="text-3xl font-bold text-white">5000+</p>
-                            <p className="text-white/70 text-sm">Active Students</p>
+                            <p className="text-3xl font-bold text-white">1000+</p>
+                            <p className="text-white/70 text-sm">Students</p>
                         </div>
                         <div>
-                            <p className="text-3xl font-bold text-white">95%</p>
+                            <p className="text-3xl font-bold text-white">90%</p>
                             <p className="text-white/70 text-sm">Success Rate</p>
                         </div>
                         <div>
-                            <p className="text-3xl font-bold text-white">50+</p>
-                            <p className="text-white/70 text-sm">Courses</p>
+                            <p className="text-3xl font-bold text-white">10+</p>
+                            <p className="text-white/70 text-sm">Years</p>
                         </div>
                     </div>
                 </div>
@@ -181,16 +185,16 @@ export default function LoginPage() {
                     {/* Mobile Logo */}
                     <div className="lg:hidden flex justify-center mb-8">
                         <Link href="/" className="flex items-center gap-3">
-                            <div className="w-12 h-12 relative">
+                            <div className="w-12 h-12 relative rounded-xl overflow-hidden">
                                 <Image
                                     src="/images/logo.png"
-                                    alt="Bard of Maths Logo"
+                                    alt="Awasthi Classes Logo"
                                     fill
-                                    className="object-contain"
+                                    className="object-cover"
                                 />
                             </div>
                             <span className="text-xl font-bold bg-gradient-to-r from-primary-600 to-blue-600 bg-clip-text text-transparent">
-                                Bard of Maths
+                                Awasthi Classes
                             </span>
                         </Link>
                     </div>
@@ -206,7 +210,7 @@ export default function LoginPage() {
                                 Sign in to your account
                             </h1>
                             <p className="text-gray-500 mt-2">
-                                Continue your learning journey
+                                Continue your exam preparation
                             </p>
                         </div>
 
@@ -402,7 +406,7 @@ export default function LoginPage() {
                                 <div className="w-full border-t border-gray-200" />
                             </div>
                             <div className="relative flex justify-center text-sm">
-                                <span className="px-4 bg-white text-gray-500">New to Bard of Maths?</span>
+                                <span className="px-4 bg-white text-gray-500">New to Awasthi Classes?</span>
                             </div>
                         </div>
 

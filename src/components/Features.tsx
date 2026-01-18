@@ -96,11 +96,11 @@ export default function Features() {
                 </div>
 
                 {/* Features Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
                     {features.map((feature, index) => (
                         <div
                             key={index}
-                            className="group bg-white rounded-3xl p-6 border border-gray-100 hover:border-transparent hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 relative overflow-hidden"
+                            className="group bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-gray-100 hover:border-transparent hover:shadow-2xl transition-all duration-500 hover:-translate-y-2 relative overflow-hidden"
                             style={{ animationDelay: feature.delay }}
                         >
                             {/* Hover gradient background */}
@@ -108,19 +108,19 @@ export default function Features() {
 
                             {/* Floating Icon */}
                             <div
-                                className={`relative w-16 h-16 bg-gradient-to-br ${feature.gradient} rounded-2xl flex items-center justify-center mb-5 shadow-lg ${feature.shadow} group-hover:scale-110 transition-transform duration-500 animate-float`}
+                                className={`relative w-12 h-12 sm:w-16 sm:h-16 bg-gradient-to-br ${feature.gradient} rounded-xl sm:rounded-2xl flex items-center justify-center mb-3 sm:mb-5 shadow-lg ${feature.shadow} group-hover:scale-110 transition-transform duration-500 animate-float`}
                                 style={{ animationDelay: feature.delay }}
                             >
-                                <feature.icon className="text-white" size={30} />
+                                <feature.icon className="text-white" size={22} />
 
                                 {/* Glow effect */}
-                                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} rounded-2xl blur-xl opacity-0 group-hover:opacity-50 transition-opacity duration-500 -z-10`} />
+                                <div className={`absolute inset-0 bg-gradient-to-br ${feature.gradient} rounded-xl sm:rounded-2xl blur-xl opacity-0 group-hover:opacity-50 transition-opacity duration-500 -z-10`} />
                             </div>
 
-                            <h3 className="text-xl font-bold text-gray-900 mb-3 group-hover:text-primary-600 transition-colors">
+                            <h3 className="text-base sm:text-xl font-bold text-gray-900 mb-1 sm:mb-3 group-hover:text-primary-600 transition-colors">
                                 {feature.title}
                             </h3>
-                            <p className="text-gray-600 leading-relaxed">
+                            <p className="text-gray-600 leading-relaxed text-xs sm:text-base">
                                 {feature.description}
                             </p>
 

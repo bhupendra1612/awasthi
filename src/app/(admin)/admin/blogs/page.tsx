@@ -10,7 +10,10 @@ export default async function AdminBlogsPage() {
 
     const { data: blogs } = await supabase
         .from("blogs")
-        .select("*")
+        .select(`
+            *,
+            profiles!blogs_author_id_fkey(full_name, email)
+        `)
         .order("created_at", { ascending: false });
 
     const formatDate = (dateString: string) => {
@@ -46,9 +49,9 @@ export default async function AdminBlogsPage() {
                         >
                             {/* Thumbnail */}
                             <div className="w-40 h-28 bg-gray-100 rounded-lg overflow-hidden flex-shrink-0 relative">
-                                {blog.image_url ? (
+                                {blog.cover_image ? (
                                     <Image
-                                        src={blog.image_url}
+                                        src={blog.cover_image}
                                         alt={blog.title}
                                         fill
                                         className="object-cover"
@@ -69,7 +72,7 @@ export default async function AdminBlogsPage() {
                                                 {blog.is_published ? "Published" : "Draft"}
                                             </span>
                                             <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
-                                                {blog.category}
+                                                Education
                                             </span>
                                         </div>
                                         <h3 className="text-lg font-semibold text-gray-900 line-clamp-1">
@@ -85,7 +88,7 @@ export default async function AdminBlogsPage() {
                                                 <Calendar size={14} />
                                                 {formatDate(blog.created_at)}
                                             </div>
-                                            <span>By {blog.author}</span>
+                                            <span>By {blog.profiles?.full_name || 'Awasthi Classes'}</span>
                                         </div>
                                     </div>
 

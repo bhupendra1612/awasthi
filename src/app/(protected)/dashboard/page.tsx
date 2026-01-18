@@ -1,6 +1,11 @@
-import { createClient } from "@/lib/supabase/server";
-import { BookOpen, Clock, Award, Play, TrendingUp, Target, Sparkles, ArrowRight, Calendar, CheckCircle, FileText, ClipboardList } from "lucide-react";
+"use client";
+
+import { useState, useEffect } from "react";
+import { createClient } from "@/lib/supabase/client";
+import { useRouter } from "next/navigation";
+import { BookOpen, Clock, Award, Play, TrendingUp, Target, Sparkles, ArrowRight, Calendar, CheckCircle, FileText, ClipboardList, Zap, PlayCircle } from "lucide-react";
 import Link from "next/link";
+import InDashboardTest from "@/components/InDashboardTest";
 
 interface Course {
     id: string;
@@ -32,52 +37,134 @@ interface Test {
     is_featured: boolean;
 }
 
-export default async function DashboardPage() {
-    const supabase = await createClient();
-    const { data: { user } } = await supabase.auth.getUser();
+interface DailyTest {
+    id: string;
+    title: string;
+    exam_category: string;
+    subject: string;
+    difficulty: string;
+    questions_count: number;
+    duration_minutes: number;
+    test_date: string;
+}
 
-    // Fetch user profile
-    const { data: profile } = await supabase
-        .from("profiles")
-        .select("full_name")
-        .eq("id", user?.id)
-        .single();
+interface TestAttempt {
+    daily_test_id: string;
+    score: number;
+    completed_at: string;
+}
 
-    // Fetch user's enrollments (purchased courses)
-    const { data: enrollments } = await supabase
-        .from("enrollments")
-        .select(`
-      course_id,
-      status,
-      courses (
-        id, title, description, class, subject, price, original_price, thumbnail_url, is_combo
-      )
-    `)
-        .eq("user_id", user?.id)
-        .eq("payment_status", "paid") as { data: Enrollment[] | null };
+export default function DashboardPage() {
+    const [user, setUser] = useState<any>(null);
+    const [profile, setProfile] = useState<any>(null);
+    const [myCourses, setMyCourses] = useState<Course[]>([]);
+    const [availableCourses, setAvailableCourses] = useState<Course[]>([]);
+    const [tests, setTests] = useState<Test[]>([]);
+    const [todayTests, setTodayTests] = useState<DailyTest[]>([]);
+    const [attempts, setAttempts] = useState<TestAttempt[]>([]);
+    const [loading, setLoading] = useState(true);
+    const [activeTestId, setActiveTestId] = useState<string | null>(null);
+    const [activeTestType, setActiveTestType] = useState<'daily' | 'regular'>('daily');
+    const router = useRouter();
+    const supabase = createClient();
 
-    // Fetch all published courses
-    const { data: allCourses } = await supabase
-        .from("courses")
-        .select("*")
-        .eq("is_published", true)
-        .order("created_at", { ascending: false }) as { data: Course[] | null };
+    useEffect(() => {
+        fetchDashboardData();
+    }, []);
 
-    // Fetch published tests
-    const { data: tests } = await supabase
-        .from("tests")
-        .select("*")
-        .eq("is_published", true)
-        .order("is_featured", { ascending: false })
-        .order("created_at", { ascending: false })
-        .limit(4) as { data: Test[] | null };
+    const fetchDashboardData = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) {
+                router.push('/login');
+                return;
+            }
 
-    // Get enrolled course IDs
-    const enrolledCourseIds = new Set(enrollments?.map(e => e.course_id) || []);
+            setUser(user);
 
-    // Filter courses
-    const myCourses = enrollments?.map(e => e.courses).filter(Boolean) || [];
-    const availableCourses = allCourses?.filter(c => !enrolledCourseIds.has(c.id)) || [];
+            // Fetch user profile
+            const { data: profileData } = await supabase
+                .from("profiles")
+                .select("full_name")
+                .eq("id", user.id)
+                .single();
+
+            setProfile(profileData);
+
+            // Fetch user's enrollments (purchased courses)
+            const { data: enrollments } = await supabase
+                .from("enrollments")
+                .select(`
+                    course_id,
+                    status,
+                    courses (
+                        id, title, description, class, subject, price, original_price, thumbnail_url, is_combo
+                    )
+                `)
+                .eq("user_id", user.id)
+                .eq("payment_status", "paid");
+
+            // Fetch all published courses
+            const { data: allCourses } = await supabase
+                .from("courses")
+                .select("*")
+                .eq("is_published", true)
+                .order("created_at", { ascending: false });
+
+            // Fetch published tests
+            const { data: testsData } = await supabase
+                .from("tests")
+                .select("*")
+                .eq("is_published", true)
+                .order("is_featured", { ascending: false })
+                .order("created_at", { ascending: false })
+                .limit(4);
+
+            // Fetch today's daily practice tests
+            const today = new Date().toISOString().split("T")[0];
+            const { data: todayTestsData } = await supabase
+                .from("generated_daily_tests")
+                .select("*")
+                .eq("status", "published")
+                .eq("test_date", today)
+                .order("exam_category");
+
+            // Fetch user's daily test attempts
+            const { data: attemptsData } = await supabase
+                .from("daily_test_attempts")
+                .select("daily_test_id, score, completed_at")
+                .eq("user_id", user.id);
+
+            // Process data
+            const enrolledCourseIds = new Set(enrollments?.map((e: any) => e.course_id) || []);
+            const myCoursesData = enrollments?.map((e: any) => e.courses).filter(Boolean) || [];
+            const availableCoursesData = allCourses?.filter((c: any) => !enrolledCourseIds.has(c.id)) || [];
+
+            setMyCourses(myCoursesData);
+            setAvailableCourses(availableCoursesData);
+            setTests(testsData || []);
+            setTodayTests(todayTestsData || []);
+            setAttempts(attemptsData || []);
+
+        } catch (error) {
+            console.error('Error fetching dashboard data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    // Daily practice data
+    const attemptedTestIds = new Set(attempts?.map(a => a.daily_test_id) || []);
+    const attemptScores = new Map(attempts?.map(a => [a.daily_test_id, a.score]) || []);
+
+    const categoryColors: Record<string, string> = {
+        "SSC": "from-blue-500 to-cyan-500",
+        "Railway": "from-green-500 to-emerald-500",
+        "Bank": "from-purple-500 to-pink-500",
+        "RPSC": "from-orange-500 to-red-500",
+        "Police": "from-red-500 to-rose-500",
+        "RSMSSB": "from-cyan-500 to-teal-500",
+    };
 
     const userName = profile?.full_name || user?.user_metadata?.full_name || "Student";
     const greeting = getGreeting();
@@ -89,8 +176,30 @@ export default async function DashboardPage() {
         return "Good Evening";
     }
 
+    if (loading) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            </div>
+        );
+    }
+
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {/* In-Dashboard Test Modal */}
+            {activeTestId && (
+                <InDashboardTest
+                    testId={activeTestId}
+                    testType={activeTestType}
+                    onClose={() => {
+                        setActiveTestId(null);
+                        setActiveTestType('daily');
+                        // Refresh data to update attempts
+                        fetchDashboardData();
+                    }}
+                />
+            )}
+
             {/* Welcome Section - Hero Style */}
             <div className="relative bg-gradient-to-br from-primary-600 via-blue-600 to-purple-700 rounded-3xl p-8 md:p-10 mb-8 overflow-hidden">
                 {/* Background decorations */}
@@ -148,12 +257,24 @@ export default async function DashboardPage() {
 
                 <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition">
                     <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/30">
-                            <Clock className="text-white" size={26} />
+                        <div className="w-14 h-14 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-yellow-500/30">
+                            <Sparkles className="text-white" size={26} />
                         </div>
                         <div>
-                            <p className="text-3xl font-bold text-gray-900">{availableCourses.length}</p>
-                            <p className="text-sm text-gray-500">Available Courses</p>
+                            <p className="text-3xl font-bold text-gray-900">{todayTests?.length || 0}</p>
+                            <p className="text-sm text-gray-500">Today's Practice</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition">
+                    <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/30">
+                            <CheckCircle className="text-white" size={26} />
+                        </div>
+                        <div>
+                            <p className="text-3xl font-bold text-gray-900">{attempts?.length || 0}</p>
+                            <p className="text-sm text-gray-500">Tests Completed</p>
                         </div>
                     </div>
                 </div>
@@ -161,18 +282,6 @@ export default async function DashboardPage() {
                 <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition">
                     <div className="flex items-center gap-4">
                         <div className="w-14 h-14 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/30">
-                            <TrendingUp className="text-white" size={26} />
-                        </div>
-                        <div>
-                            <p className="text-3xl font-bold text-gray-900">0%</p>
-                            <p className="text-sm text-gray-500">Performance</p>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition">
-                    <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-yellow-500/30">
                             <Award className="text-white" size={26} />
                         </div>
                         <div>
@@ -193,9 +302,9 @@ export default async function DashboardPage() {
                         <h3 className="font-semibold text-gray-900">Daily Practice</h3>
                     </div>
                     <p className="text-sm text-gray-600 mb-3">Free AI-generated daily tests for quick practice.</p>
-                    <Link href="/daily-practice" className="text-orange-600 text-sm font-medium flex items-center gap-1 hover:gap-2 transition-all">
-                        Practice Now <ArrowRight size={14} />
-                    </Link>
+                    <div className="text-orange-600 text-sm font-medium flex items-center gap-1">
+                        {todayTests?.length || 0} tests available today
+                    </div>
                 </div>
 
                 <div className="bg-gradient-to-br from-blue-50 to-cyan-50 rounded-2xl p-5 border border-blue-100">
@@ -237,6 +346,90 @@ export default async function DashboardPage() {
                     </Link>
                 </div>
             </div>
+
+            {/* Daily Practice Section */}
+            {todayTests && todayTests.length > 0 && (
+                <section className="mb-12">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-gradient-to-br from-yellow-400 to-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-yellow-500/30">
+                                <Sparkles className="text-white" size={24} />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold text-gray-900">Today's Daily Practice</h2>
+                                <p className="text-sm text-gray-500">Free AI-generated tests • {new Date().toLocaleDateString("en-IN", { weekday: 'long', day: 'numeric', month: 'long' })}</p>
+                            </div>
+                        </div>
+                        <div className="flex items-center gap-2 bg-green-50 text-green-700 px-3 py-1.5 rounded-full text-sm font-medium">
+                            <Zap size={16} />
+                            Always FREE
+                        </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {todayTests.map((test) => {
+                            const isAttempted = attemptedTestIds.has(test.id);
+                            const score = attemptScores.get(test.id);
+
+                            return (
+                                <div
+                                    key={test.id}
+                                    className={`bg-white rounded-2xl overflow-hidden shadow-sm border hover:shadow-lg transition ${isAttempted ? "ring-2 ring-green-500" : ""
+                                        }`}
+                                >
+                                    <div className={`h-2 bg-gradient-to-r ${categoryColors[test.exam_category] || "from-gray-400 to-gray-500"}`} />
+                                    <div className="p-5">
+                                        <div className="flex items-center justify-between mb-3">
+                                            <span className="text-xs font-medium bg-gray-100 text-gray-700 px-2 py-1 rounded">
+                                                {test.exam_category}
+                                            </span>
+                                            {isAttempted && (
+                                                <span className="flex items-center gap-1 text-xs font-medium bg-green-100 text-green-700 px-2 py-1 rounded">
+                                                    <CheckCircle size={12} />
+                                                    Score: {score}/{test.questions_count}
+                                                </span>
+                                            )}
+                                        </div>
+
+                                        <h3 className="font-bold text-gray-900 mb-1">{test.subject}</h3>
+
+                                        <div className="flex items-center gap-3 text-sm text-gray-500 mb-4">
+                                            <span className="flex items-center gap-1">
+                                                <FileText size={14} />
+                                                {test.questions_count} Qs
+                                            </span>
+                                            <span className="flex items-center gap-1">
+                                                <Clock size={14} />
+                                                {test.duration_minutes} min
+                                            </span>
+                                            <span className={`px-1.5 py-0.5 rounded text-xs ${test.difficulty === "easy" ? "bg-green-100 text-green-700" :
+                                                test.difficulty === "medium" ? "bg-yellow-100 text-yellow-700" :
+                                                    "bg-red-100 text-red-700"
+                                                }`}>
+                                                {test.difficulty}
+                                            </span>
+                                        </div>
+
+                                        <button
+                                            onClick={() => {
+                                                setActiveTestId(test.id);
+                                                setActiveTestType('daily');
+                                            }}
+                                            className={`w-full flex items-center justify-center gap-2 py-2.5 rounded-xl font-medium transition ${isAttempted
+                                                ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                                                : "bg-gradient-to-r from-primary-600 to-blue-600 text-white hover:shadow-lg"
+                                                }`}
+                                        >
+                                            <PlayCircle size={16} />
+                                            {isAttempted ? "View Result" : "Start Test"}
+                                        </button>
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                </section>
+            )}
 
             {/* My Courses Section */}
             <section className="mb-12">

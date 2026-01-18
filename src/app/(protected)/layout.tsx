@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import LogoutButton from "@/components/LogoutButton";
-import { LayoutDashboard, BookOpen, GraduationCap, Settings, Bell, Search, UserCheck } from "lucide-react";
+import { LayoutDashboard, BookOpen, GraduationCap, Settings, Bell, Search, UserCheck, PenTool } from "lucide-react";
 
 export default async function ProtectedLayout({
     children,
@@ -70,6 +70,13 @@ export default async function ProtectedLayout({
                             >
                                 <BookOpen size={18} />
                                 My Courses
+                            </Link>
+                            <Link
+                                href="/tests"
+                                className="flex items-center gap-2 px-4 py-2 text-gray-600 hover:text-primary-600 hover:bg-white rounded-lg transition-all font-medium"
+                            >
+                                <PenTool size={18} />
+                                Tests
                             </Link>
                             <Link
                                 href="/courses"
@@ -142,6 +149,13 @@ export default async function ProtectedLayout({
                         >
                             <BookOpen size={20} />
                             <span className="text-xs">My Courses</span>
+                        </Link>
+                        <Link
+                            href="/tests"
+                            className="flex flex-col items-center gap-1 px-4 py-2 text-gray-600 hover:text-primary-600 transition"
+                        >
+                            <PenTool size={20} />
+                            <span className="text-xs">Tests</span>
                         </Link>
                         <Link
                             href="/courses"

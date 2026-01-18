@@ -102,15 +102,18 @@ export default function HomepageTeachersPage() {
         setSuccess("");
 
         const teacherData = {
-            name: formData.name,
-            designation: formData.designation || null,
-            bio: formData.bio || null,
-            photo_url: formData.photo_url || null,
-            subjects: formData.subjects ? formData.subjects.split(",").map(s => s.trim()) : null,
-            experience_years: formData.experience_years,
-            qualifications: formData.qualifications ? formData.qualifications.split(",").map(q => q.trim()) : null,
+            name: formData.name.trim(),
+            designation: formData.designation.trim() || null,
+            bio: formData.bio.trim() || null,
+            photo_url: formData.photo_url.trim() || null,
+            subjects: formData.subjects ? formData.subjects.split(",").map(s => s.trim()).filter(s => s) : [],
+            experience_years: formData.experience_years > 0 ? formData.experience_years : 1,
+            qualifications: formData.qualifications ? formData.qualifications.split(",").map(q => q.trim()).filter(q => q) : [],
             is_featured: formData.is_featured,
+            is_active: true, // Default to active
         };
+
+        console.log("Submitting teacher data:", teacherData);
 
         try {
             if (editingId) {
@@ -119,22 +122,43 @@ export default function HomepageTeachersPage() {
                     .update(teacherData)
                     .eq("id", editingId);
 
-                if (error) throw error;
+                if (error) {
+                    console.error("Update error details:", {
+                        message: error.message,
+                        details: error.details,
+                        hint: error.hint,
+                        code: error.code
+                    });
+                    throw new Error(error.message || "Database update failed");
+                }
                 setSuccess("Teacher updated successfully!");
             } else {
                 const maxOrder = teachers.length > 0 ? Math.max(...teachers.map(t => t.order_index)) : 0;
+                const insertData = { ...teacherData, order_index: maxOrder + 1 };
+                console.log("Inserting teacher with data:", insertData);
+
                 const { error } = await supabase
                     .from("teachers")
-                    .insert({ ...teacherData, order_index: maxOrder + 1 });
+                    .insert(insertData);
 
-                if (error) throw error;
+                if (error) {
+                    console.error("Insert error details:", {
+                        message: error.message,
+                        details: error.details,
+                        hint: error.hint,
+                        code: error.code
+                    });
+                    throw new Error(error.message || "Database insert failed");
+                }
                 setSuccess("Teacher added successfully!");
             }
 
             resetForm();
             fetchTeachers();
         } catch (err) {
-            setError(err instanceof Error ? err.message : "Failed to save teacher");
+            console.error("Full error:", err);
+            const errorMessage = err instanceof Error ? err.message : "Failed to save teacher";
+            setError(errorMessage);
         } finally {
             setSaving(false);
         }
@@ -357,16 +381,42 @@ export default function HomepageTeachersPage() {
                             </select>
                         </div>
 
-                        {/* Photo Upload */}
+                        {/* Photo Upload - Compact */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Teacher Photo</label>
-                            <ImageUploader
-                                currentImageUrl={formData.photo_url || null}
-                                onImageChange={(url) => setFormData({ ...formData, photo_url: url || "" })}
-                                folder="teachers"
-                                label="Upload Teacher Photo"
-                                aspectRatio="square"
-                            />
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Teacher Photo (Square format recommended)</label>
+                            <div className="flex items-start gap-4">
+                                {/* Preview */}
+                                <div className="flex-shrink-0">
+                                    {formData.photo_url ? (
+                                        <div className="w-32 h-32 rounded-xl overflow-hidden border-2 border-gray-200">
+                                            <Image
+                                                src={formData.photo_url}
+                                                alt="Preview"
+                                                width={128}
+                                                height={128}
+                                                className="object-cover w-full h-full"
+                                            />
+                                        </div>
+                                    ) : (
+                                        <div className="w-32 h-32 bg-gradient-to-br from-gray-100 to-gray-200 rounded-xl flex items-center justify-center border-2 border-dashed border-gray-300">
+                                            <Upload className="text-gray-400" size={32} />
+                                        </div>
+                                    )}
+                                </div>
+                                {/* Uploader */}
+                                <div className="flex-1">
+                                    <ImageUploader
+                                        currentImageUrl={formData.photo_url || null}
+                                        onImageChange={(url) => setFormData({ ...formData, photo_url: url || "" })}
+                                        folder="teachers"
+                                        label=""
+                                        aspectRatio="square"
+                                    />
+                                    <p className="text-xs text-gray-500 mt-2">
+                                        Upload a professional photo. Square format (1:1 ratio) works best.
+                                    </p>
+                                </div>
+                            </div>
                         </div>
 
                         <div>

@@ -13,7 +13,6 @@ interface Course {
     description: string;
     class: string;
     subject: string;
-    board?: string;
     price: number;
     original_price?: number;
     duration?: string;
@@ -42,7 +41,6 @@ export default function EditCoursePage() {
         description: "",
         class: "SSC",
         subject: "General Knowledge",
-        board: "Central Government",
         price: "0",
         original_price: "",
         duration: "6 Months",
@@ -69,7 +67,7 @@ export default function EditCoursePage() {
 
             const { data, error } = await supabase
                 .from("courses")
-                .select("*")
+                .select("id, title, description, class, subject, price, original_price, duration, is_combo, is_published, is_featured, is_trending, thumbnail_url")
                 .eq("id", courseId)
                 .single();
 
@@ -90,7 +88,6 @@ export default function EditCoursePage() {
                 description: data.description || "",
                 class: data.class || "SSC",
                 subject: data.subject || "General Knowledge",
-                board: data.board || "Central Government",
                 price: data.price?.toString() || "0",
                 original_price: data.original_price?.toString() || "",
                 duration: data.duration || "6 Months",
@@ -121,22 +118,28 @@ export default function EditCoursePage() {
         setSuccess("");
 
         try {
-            // Prepare clean update data
-            const updateData = {
-                title: formData.title.trim(),
-                description: formData.description.trim(),
-                class: formData.class,
-                subject: formData.subject,
-                board: formData.board,
-                duration: formData.duration,
-                price: formData.price,
-                original_price: formData.original_price || null,
-                is_combo: formData.is_combo,
-                is_published: formData.is_published,
-                is_featured: formData.is_featured,
-                is_trending: formData.is_trending,
-                thumbnail_url: formData.thumbnail_url || null,
-            };
+            // Prepare clean update data - only include defined values
+            const updateData: any = {};
+
+            // Only add fields that have actual values
+            if (formData.title?.trim()) updateData.title = formData.title.trim();
+            if (formData.description?.trim()) updateData.description = formData.description.trim();
+            if (formData.class) updateData.class = formData.class;
+            if (formData.subject) updateData.subject = formData.subject;
+            if (formData.duration) updateData.duration = formData.duration;
+            if (formData.price) updateData.price = formData.price;
+            if (formData.original_price) updateData.original_price = formData.original_price;
+
+            // Boolean values - always include
+            updateData.is_combo = formData.is_combo;
+            updateData.is_published = formData.is_published;
+            updateData.is_featured = formData.is_featured;
+            updateData.is_trending = formData.is_trending;
+
+            // Thumbnail - only if it exists
+            if (formData.thumbnail_url) {
+                updateData.thumbnail_url = formData.thumbnail_url;
+            }
 
             console.log("Updating course via API:", courseId, "with data:", updateData);
 
@@ -338,7 +341,24 @@ export default function EditCoursePage() {
                                 onChange={(e) => setFormData({ ...formData, is_featured: e.target.checked })}
                                 className="w-4 h-4 text-primary-600 rounded"
                             />
-                            <label htmlFor="is_featured" className="text-sm text-gray-700">Featured course</label>
+                            <label htmlFor="is_featured" className="text-sm font-medium text-gray-700">
+                                ⭐ Featured Course
+                                <span className="block text-xs text-gray-500 font-normal">Show on homepage and student dashboard</span>
+                            </label>
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            <input
+                                type="checkbox"
+                                id="is_trending"
+                                checked={formData.is_trending}
+                                onChange={(e) => setFormData({ ...formData, is_trending: e.target.checked })}
+                                className="w-4 h-4 text-primary-600 rounded"
+                            />
+                            <label htmlFor="is_trending" className="text-sm font-medium text-gray-700">
+                                🔥 Trending Course
+                                <span className="block text-xs text-gray-500 font-normal">Mark as popular/trending</span>
+                            </label>
                         </div>
 
                         <div className="flex items-center gap-3">

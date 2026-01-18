@@ -28,13 +28,13 @@ interface Course {
     description: string | null;
     class: string;
     subject: string;
-    board: string;
+    board?: string;
     price: number;
     original_price: number | null;
-    duration: string;
+    duration?: string;
     is_combo: boolean;
-    is_featured: boolean;
-    is_trending: boolean;
+    is_featured?: boolean;
+    is_trending?: boolean;
     is_published: boolean;
     thumbnail_url: string | null;
     created_at: string;
@@ -78,41 +78,55 @@ export default function Courses() {
     const fetchCourses = async () => {
         setLoading(true);
 
-        let query = supabase
-            .from("courses")
-            .select("*")
-            .eq("is_published", true);
+        try {
+            let query = supabase
+                .from("courses")
+                .select("*")
+                .eq("is_published", true);
 
-        // Apply filters
-        if (activeFilter === "free") {
-            query = query.or("price.eq.0,price.is.null");
-        } else if (activeFilter === "paid") {
-            query = query.gt("price", 0);
-        } else if (activeFilter === "latest") {
-            query = query.order("created_at", { ascending: false }).limit(6);
-        } else if (activeFilter === "trending") {
-            query = query.eq("is_trending", true);
-        }
+            // Apply filters
+            if (activeFilter === "free") {
+                query = query.or("price.eq.0,price.is.null");
+            } else if (activeFilter === "paid") {
+                query = query.gt("price", 0);
+            } else if (activeFilter === "latest") {
+                query = query.order("created_at", { ascending: false }).limit(6);
+            } else if (activeFilter === "trending") {
+                query = query.eq("is_trending", true);
+            }
 
-        if (activeFilter !== "latest") {
-            query = query.order("is_featured", { ascending: false }).order("created_at", { ascending: false });
-        }
+            if (activeFilter !== "latest") {
+                query = query.order("created_at", { ascending: false });
+            }
 
-        const { data, error } = await query;
+            const { data, error } = await query;
 
-        if (error) {
-            console.error("Error fetching courses:", error);
+            if (error) {
+                console.error("Error fetching courses:", error);
+                setLoading(false);
+                return;
+            }
+
+            // Process data and add default values for missing fields
+            const processedData = (data || []).map(course => ({
+                ...course,
+                board: course.board || 'CBSE',
+                duration: course.duration || '6 months',
+                is_featured: course.is_featured || false,
+                is_trending: course.is_trending || false
+            }));
+
+            // Separate regular and combo courses
+            const regular = processedData.filter((c) => !c.is_combo);
+            const combos = processedData.filter((c) => c.is_combo);
+
+            setCourses(regular);
+            setComboCourses(combos);
+        } catch (err) {
+            console.error("Error in fetchCourses:", err);
+        } finally {
             setLoading(false);
-            return;
         }
-
-        // Separate regular and combo courses
-        const regular = data?.filter((c) => !c.is_combo) || [];
-        const combos = data?.filter((c) => c.is_combo) || [];
-
-        setCourses(regular);
-        setComboCourses(combos);
-        setLoading(false);
     };
 
     const filters: { key: FilterType; label: string }[] = [
@@ -237,7 +251,7 @@ export default function Courses() {
                                                 <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary-600 transition line-clamp-1">
                                                     {course.title}
                                                 </h3>
-                                                <p className="text-sm text-gray-500 mt-1">{course.board}</p>
+                                                <p className="text-sm text-gray-500 mt-1">{course.board || 'CBSE'}</p>
 
                                                 {/* Stats */}
                                                 <div className="flex items-center gap-3 mt-3 text-sm text-gray-600">
@@ -247,7 +261,7 @@ export default function Courses() {
                                                     </div>
                                                     <div className="flex items-center gap-1">
                                                         <Clock size={14} />
-                                                        <span>{course.duration}</span>
+                                                        <span>{course.duration || '6 months'}</span>
                                                     </div>
                                                 </div>
 
@@ -340,7 +354,7 @@ export default function Courses() {
                                                         <BookOpen size={16} />
                                                         <span>{course.subject}</span>
                                                         <span className="text-white/60">•</span>
-                                                        <span>{course.duration}</span>
+                                                        <span>{course.duration || '6 months'}</span>
                                                     </div>
 
                                                     <div className="mt-4">
@@ -445,7 +459,7 @@ function CourseModal({ course, onClose }: { course: Course; onClose: () => void 
                             </div>
                             <div className="flex items-center gap-1">
                                 <Clock size={18} />
-                                <span>{course.duration}</span>
+                                <span>{course.duration || '6 months'}</span>
                             </div>
                         </div>
                     </div>

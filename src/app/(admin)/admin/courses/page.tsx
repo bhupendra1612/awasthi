@@ -7,7 +7,7 @@ import Image from "next/image";
 import {
     Plus, Edit, Eye, EyeOff, BookOpen, Video, Users, Search,
     Filter, Grid, List, Sparkles, IndianRupee, Clock, FileText,
-    TrendingUp, Award, Target, ChevronDown, X, RefreshCw, Loader2
+    TrendingUp, Award, Target, ChevronDown, X, RefreshCw, Loader2, UserCircle, Shield
 } from "lucide-react";
 import DeleteCourseButton from "@/components/admin/DeleteCourseButton";
 import TogglePublishButton from "@/components/admin/TogglePublishButton";
@@ -26,6 +26,12 @@ interface Course {
     is_featured: boolean;
     duration: string;
     created_at: string;
+    created_by: string | null;
+    created_by_role: string | null;
+    creator?: {
+        full_name: string;
+        email: string;
+    };
 }
 
 // Exam categories for government exams
@@ -79,6 +85,7 @@ export default function CoursesPage() {
     const [subjectFilter, setSubjectFilter] = useState("");
     const [statusFilter, setStatusFilter] = useState<"all" | "published" | "draft">("all");
     const [priceFilter, setPriceFilter] = useState<"all" | "free" | "paid">("all");
+    const [creatorFilter, setCreatorFilter] = useState<"all" | "admin" | "teacher">("all");
     const [showFilters, setShowFilters] = useState(false);
 
     // Stats
@@ -94,7 +101,10 @@ export default function CoursesPage() {
 
         const { data: coursesData } = await supabase
             .from("courses")
-            .select("*")
+            .select(`
+                *,
+                creator:created_by(full_name, email)
+            `)
             .order("created_at", { ascending: false });
 
         const { data: enrollments } = await supabase
@@ -134,8 +144,11 @@ export default function CoursesPage() {
         const matchesPrice = priceFilter === "all" ||
             (priceFilter === "free" && course.price === 0) ||
             (priceFilter === "paid" && course.price > 0);
+        const matchesCreator = creatorFilter === "all" ||
+            (creatorFilter === "admin" && course.created_by_role === "admin") ||
+            (creatorFilter === "teacher" && course.created_by_role === "teacher");
 
-        return matchesSearch && matchesCategory && matchesSubject && matchesStatus && matchesPrice;
+        return matchesSearch && matchesCategory && matchesSubject && matchesStatus && matchesPrice && matchesCreator;
     });
 
     // Stats
@@ -151,9 +164,10 @@ export default function CoursesPage() {
         setSubjectFilter("");
         setStatusFilter("all");
         setPriceFilter("all");
+        setCreatorFilter("all");
     };
 
-    const hasActiveFilters = searchQuery || categoryFilter || subjectFilter || statusFilter !== "all" || priceFilter !== "all";
+    const hasActiveFilters = searchQuery || categoryFilter || subjectFilter || statusFilter !== "all" || priceFilter !== "all" || creatorFilter !== "all";
 
     if (loading) {
         return (
@@ -280,6 +294,16 @@ export default function CoursesPage() {
                         <option value="draft">Draft</option>
                     </select>
 
+                    <select
+                        value={creatorFilter}
+                        onChange={(e) => setCreatorFilter(e.target.value as "all" | "admin" | "teacher")}
+                        className="px-4 py-2.5 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 outline-none bg-white"
+                    >
+                        <option value="all">All Creators</option>
+                        <option value="admin">Admin Created</option>
+                        <option value="teacher">Teacher Created</option>
+                    </select>
+
                     <button
                         onClick={() => setShowFilters(!showFilters)}
                         className={`px-4 py-2.5 border rounded-lg flex items-center gap-2 transition ${showFilters ? "bg-primary-50 border-primary-300 text-primary-700" : "border-gray-200 hover:bg-gray-50"}`}
@@ -398,6 +422,16 @@ export default function CoursesPage() {
                                         )}
                                         <div className="absolute top-3 left-3 flex flex-wrap gap-2">
                                             <span className={`text-xs font-semibold px-2.5 py-1 rounded-full border ${categoryColor}`}>{course.class}</span>
+                                            {course.created_by_role === 'teacher' && (
+                                                <span className="bg-purple-500 text-white text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
+                                                    <UserCircle size={12} /> Teacher
+                                                </span>
+                                            )}
+                                            {course.created_by_role === 'admin' && (
+                                                <span className="bg-blue-600 text-white text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
+                                                    <Shield size={12} /> Admin
+                                                </span>
+                                            )}
                                             {course.is_combo && (
                                                 <span className="bg-yellow-400 text-yellow-900 text-xs font-semibold px-2.5 py-1 rounded-full flex items-center gap-1">
                                                     <Sparkles size={12} /> COMBO
@@ -424,6 +458,12 @@ export default function CoursesPage() {
                                     <div className="p-5">
                                         <h3 className="font-bold text-gray-900 text-lg line-clamp-2 mb-2">{course.title}</h3>
                                         <p className="text-sm text-gray-500 mb-3">{course.subject}</p>
+                                        {course.creator && (
+                                            <div className="flex items-center gap-2 mb-3 text-xs text-gray-600">
+                                                <UserCircle size={14} />
+                                                <span>Created by: <span className="font-medium">{course.creator.full_name || course.creator.email}</span></span>
+                                            </div>
+                                        )}
                                         <div className="flex items-center gap-4 text-sm text-gray-500 mb-4">
                                             <span className="flex items-center gap-1"><Video size={14} /> {videoCount} videos</span>
                                             <span className="flex items-center gap-1"><Users size={14} /> {enrollCount} enrolled</span>
@@ -464,6 +504,7 @@ export default function CoursesPage() {
                                 <tr>
                                     <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Course</th>
                                     <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Category</th>
+                                    <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Creator</th>
                                     <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Price</th>
                                     <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Videos</th>
                                     <th className="text-left px-6 py-4 text-sm font-medium text-gray-500">Enrolled</th>
@@ -493,6 +534,19 @@ export default function CoursesPage() {
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className={`text-xs font-medium px-2 py-1 rounded ${categoryColor}`}>{course.class}</span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                {course.created_by_role === 'teacher' ? (
+                                                    <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded bg-purple-100 text-purple-700">
+                                                        <UserCircle size={12} /> Teacher
+                                                    </span>
+                                                ) : course.created_by_role === 'admin' ? (
+                                                    <span className="inline-flex items-center gap-1 text-xs font-medium px-2 py-1 rounded bg-blue-100 text-blue-700">
+                                                        <Shield size={12} /> Admin
+                                                    </span>
+                                                ) : (
+                                                    <span className="text-xs text-gray-400">Unknown</span>
+                                                )}
                                             </td>
                                             <td className="px-6 py-4">
                                                 {course.price > 0 ? (

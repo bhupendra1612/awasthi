@@ -2,12 +2,35 @@
 
 import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
-import {
-    Sparkles, Plus, Play, Edit, Trash2, Clock, FileText,
-    CheckCircle, XCircle, AlertCircle, Zap, RefreshCw,
-    BookOpen, Target, Brain, Calculator, Languages
-} from "lucide-react";
 import Link from "next/link";
+import {
+    Plus,
+    Search,
+    Eye,
+    CheckCircle,
+    XCircle,
+    AlertCircle,
+    Loader2,
+    Calendar,
+    Brain,
+    Settings,
+    Clock,
+    FileText,
+} from "lucide-react";
+
+interface DailyTest {
+    id: string;
+    title: string;
+    exam_category: string;
+    subject: string;
+    difficulty: string;
+    questions_count: number;
+    duration_minutes: number;
+    status: 'pending_approval' | 'approved' | 'published' | 'rejected';
+    test_date: string;
+    generated_at: string;
+    template_id?: string;
+}
 
 interface Template {
     id: string;
@@ -17,152 +40,126 @@ interface Template {
     difficulty: string;
     questions_count: number;
     duration_minutes: number;
-    ai_prompt: string;
     is_active: boolean;
-    created_at: string;
 }
 
-interface GeneratedTest {
-    id: string;
-    title: string;
-    exam_category: string;
-    subject: string;
-    status: string;
-    test_date: string;
-    generated_at: string;
-    approval_deadline: string | null;
-    questions_count: number;
-}
-
-const subjectIcons: Record<string, React.ReactNode> = {
-    "General Knowledge": <BookOpen size={20} />,
-    "Mathematics": <Calculator size={20} />,
-    "Reasoning": <Brain size={20} />,
-    "Hindi": <Languages size={20} />,
-    "English": <Languages size={20} />,
-};
-
-const categoryColors: Record<string, string> = {
-    "SSC": "bg-blue-100 text-blue-700",
-    "Railway": "bg-green-100 text-green-700",
-    "Bank": "bg-purple-100 text-purple-700",
-    "RPSC": "bg-orange-100 text-orange-700",
-    "Police": "bg-red-100 text-red-700",
-    "RSMSSB": "bg-cyan-100 text-cyan-700",
-};
-
-const statusColors: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
-    "pending_approval": { bg: "bg-yellow-100", text: "text-yellow-700", icon: <AlertCircle size={14} /> },
-    "approved": { bg: "bg-blue-100", text: "text-blue-700", icon: <CheckCircle size={14} /> },
-    "published": { bg: "bg-green-100", text: "text-green-700", icon: <CheckCircle size={14} /> },
-    "rejected": { bg: "bg-red-100", text: "text-red-700", icon: <XCircle size={14} /> },
-};
-
-export default function DailyTestsPage() {
+export default function AdminDailyTestsPage() {
+    const supabase = createClient();
+    const [dailyTests, setDailyTests] = useState<DailyTest[]>([]);
     const [templates, setTemplates] = useState<Template[]>([]);
-    const [generatedTests, setGeneratedTests] = useState<GeneratedTest[]>([]);
     const [loading, setLoading] = useState(true);
     const [generating, setGenerating] = useState<string | null>(null);
-    const [activeTab, setActiveTab] = useState<"templates" | "generated">("templates");
-    const supabase = createClient();
 
     useEffect(() => {
         fetchData();
     }, []);
 
     async function fetchData() {
-        setLoading(true);
+        try {
+            // Fetch daily tests
+            const { data: testsData, error: testsError } = await supabase
+                .from("generated_daily_tests")
+                .select("*")
+                .order("generated_at", { ascending: false });
 
-        // Fetch templates
-        const { data: templatesData } = await supabase
-            .from("daily_test_templates")
-            .select("*")
-            .order("created_at", { ascending: false });
+            if (testsError) throw testsError;
+            setDailyTests(testsData || []);
 
-        // Fetch generated tests
-        const { data: testsData } = await supabase
-            .from("generated_daily_tests")
-            .select("*")
-            .order("generated_at", { ascending: false })
-            .limit(20);
+            // Fetch templates
+            const { data: templatesData, error: templatesError } = await supabase
+                .from("daily_test_templates")
+                .select("*")
+                .eq("is_active", true)
+                .order("created_at", { ascending: false });
 
-        setTemplates(templatesData || []);
-        setGeneratedTests(testsData || []);
-        setLoading(false);
+            if (templatesError) throw templatesError;
+            setTemplates(templatesData || []);
+
+        } catch (error) {
+            console.error("Error fetching data:", error);
+        } finally {
+            setLoading(false);
+        }
     }
 
-    async function generateTest(template: Template) {
-        setGenerating(template.id);
-
+    async function generateTest(templateId: string) {
+        setGenerating(templateId);
         try {
             const response = await fetch("/api/generate-daily-test", {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ templateId: template.id }),
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ templateId }),
             });
 
             const result = await response.json();
 
             if (result.success) {
-                const provider = result.provider || "AI";
-                const emoji = provider === "Demo" ? "⚠️" : "🎉";
-                alert(`${emoji} ${result.message || `Test generated successfully using ${provider}!`}`);
-                fetchData();
+                alert(result.message);
+                fetchData(); // Refresh the data
             } else {
-                alert("❌ Failed to generate test: " + result.error);
+                alert(`Error: ${result.error}`);
             }
         } catch (error) {
-            alert("❌ Error generating test. Please try again.");
-        }
-
-        setGenerating(null);
-    }
-
-    async function approveTest(testId: string) {
-        const { error } = await supabase
-            .from("generated_daily_tests")
-            .update({
-                status: "published",
-                approved_at: new Date().toISOString(),
-                published_at: new Date().toISOString()
-            })
-            .eq("id", testId);
-
-        if (!error) {
-            alert("✅ Test approved and published!");
-            fetchData();
+            console.error("Error generating test:", error);
+            alert("Failed to generate test");
+        } finally {
+            setGenerating(null);
         }
     }
 
-    async function rejectTest(testId: string) {
-        const { error } = await supabase
-            .from("generated_daily_tests")
-            .update({ status: "rejected" })
-            .eq("id", testId);
+    async function updateTestStatus(id: string, status: 'approved' | 'published' | 'rejected') {
+        try {
+            const updates: any = { status };
 
-        if (!error) {
-            alert("Test rejected.");
-            fetchData();
+            if (status === 'approved') {
+                updates.approved_at = new Date().toISOString();
+            } else if (status === 'published') {
+                updates.published_at = new Date().toISOString();
+                updates.approved_at = new Date().toISOString();
+            }
+
+            const { error } = await supabase
+                .from("generated_daily_tests")
+                .update(updates)
+                .eq("id", id);
+
+            if (error) throw error;
+
+            setDailyTests(dailyTests.map((t) =>
+                t.id === id ? { ...t, ...updates } : t
+            ));
+        } catch (error) {
+            console.error("Error updating test status:", error);
+            alert("Failed to update test status");
         }
     }
 
-    async function deleteTemplate(id: string) {
-        if (!confirm("Are you sure you want to delete this template?")) return;
-
-        const { error } = await supabase
-            .from("daily_test_templates")
-            .delete()
-            .eq("id", id);
-
-        if (!error) {
-            fetchData();
+    const getStatusColor = (status: string) => {
+        switch (status) {
+            case 'published': return 'bg-green-100 text-green-700';
+            case 'approved': return 'bg-blue-100 text-blue-700';
+            case 'pending_approval': return 'bg-yellow-100 text-yellow-700';
+            case 'rejected': return 'bg-red-100 text-red-700';
+            default: return 'bg-gray-100 text-gray-700';
         }
-    }
+    };
+
+    const getStatusIcon = (status: string) => {
+        switch (status) {
+            case 'published': return <CheckCircle size={16} />;
+            case 'approved': return <CheckCircle size={16} />;
+            case 'pending_approval': return <AlertCircle size={16} />;
+            case 'rejected': return <XCircle size={16} />;
+            default: return <AlertCircle size={16} />;
+        }
+    };
 
     if (loading) {
         return (
-            <div className="flex items-center justify-center min-h-[400px]">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-600"></div>
+            <div className="flex items-center justify-center py-20">
+                <Loader2 className="animate-spin text-primary-600" size={32} />
             </div>
         );
     }
@@ -170,266 +167,193 @@ export default function DailyTestsPage() {
     return (
         <div className="space-y-6">
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                        <Sparkles className="text-yellow-500" />
-                        AI Daily Practice Tests
-                    </h1>
-                    <p className="text-gray-500 mt-1">
-                        Generate daily practice tests using AI for government exam preparation
-                    </p>
+                    <h1 className="text-2xl font-bold text-gray-900">Daily Practice Tests</h1>
+                    <p className="text-gray-500 mt-1">AI-generated daily practice tests for students</p>
                 </div>
                 <Link
                     href="/admin/daily-tests/new-template"
-                    className="inline-flex items-center gap-2 bg-gradient-to-r from-primary-600 to-blue-600 text-white px-4 py-2 rounded-lg hover:shadow-lg transition"
+                    className="inline-flex items-center gap-2 bg-purple-600 text-white px-4 py-2.5 rounded-lg hover:bg-purple-700 transition font-medium"
                 >
-                    <Plus size={18} />
+                    <Settings size={20} />
                     New Template
                 </Link>
             </div>
 
-            {/* Stats Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white rounded-xl p-4 shadow-sm border">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
-                            <Target className="text-blue-600" size={20} />
-                        </div>
-                        <div>
-                            <p className="text-2xl font-bold">{templates.length}</p>
-                            <p className="text-sm text-gray-500">Templates</p>
-                        </div>
+            {/* Generate Tests Section */}
+            <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                <h2 className="text-lg font-semibold text-gray-900 mb-4">Generate New Tests</h2>
+                {templates.length === 0 ? (
+                    <div className="text-center py-8">
+                        <Settings className="mx-auto text-gray-300 mb-4" size={48} />
+                        <h3 className="text-lg font-medium text-gray-900 mb-2">No active templates</h3>
+                        <p className="text-gray-500 mb-4">Create templates to generate daily tests</p>
+                        <Link
+                            href="/admin/daily-tests/new-template"
+                            className="inline-flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg hover:bg-primary-700"
+                        >
+                            <Plus size={18} />
+                            Create Template
+                        </Link>
                     </div>
-                </div>
-                <div className="bg-white rounded-xl p-4 shadow-sm border">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
-                            <CheckCircle className="text-green-600" size={20} />
-                        </div>
-                        <div>
-                            <p className="text-2xl font-bold">
-                                {generatedTests.filter(t => t.status === "published").length}
-                            </p>
-                            <p className="text-sm text-gray-500">Published</p>
-                        </div>
+                ) : (
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        {templates.map((template) => (
+                            <div key={template.id} className="border border-gray-200 rounded-lg p-4">
+                                <div className="mb-3">
+                                    <h3 className="font-medium text-gray-900 mb-1">{template.name}</h3>
+                                    <p className="text-sm text-gray-500">{template.exam_category} • {template.subject}</p>
+                                </div>
+
+                                <div className="space-y-2 mb-4 text-sm">
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Questions:</span>
+                                        <span className="text-gray-900">{template.questions_count}</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Duration:</span>
+                                        <span className="text-gray-900">{template.duration_minutes} min</span>
+                                    </div>
+                                    <div className="flex justify-between">
+                                        <span className="text-gray-500">Difficulty:</span>
+                                        <span className="text-gray-900 capitalize">{template.difficulty}</span>
+                                    </div>
+                                </div>
+
+                                <button
+                                    onClick={() => generateTest(template.id)}
+                                    disabled={generating === template.id}
+                                    className="w-full px-3 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                                >
+                                    {generating === template.id ? (
+                                        <>
+                                            <Loader2 className="animate-spin" size={16} />
+                                            Generating...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Brain size={16} />
+                                            Generate Test
+                                        </>
+                                    )}
+                                </button>
+                            </div>
+                        ))}
                     </div>
-                </div>
-                <div className="bg-white rounded-xl p-4 shadow-sm border">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-yellow-100 rounded-lg flex items-center justify-center">
-                            <AlertCircle className="text-yellow-600" size={20} />
-                        </div>
-                        <div>
-                            <p className="text-2xl font-bold">
-                                {generatedTests.filter(t => t.status === "pending_approval").length}
-                            </p>
-                            <p className="text-sm text-gray-500">Pending</p>
-                        </div>
-                    </div>
-                </div>
-                <div className="bg-white rounded-xl p-4 shadow-sm border">
-                    <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
-                            <Zap className="text-purple-600" size={20} />
-                        </div>
-                        <div>
-                            <p className="text-2xl font-bold">{generatedTests.length}</p>
-                            <p className="text-sm text-gray-500">Total Generated</p>
-                        </div>
-                    </div>
-                </div>
+                )}
             </div>
 
-            {/* Tabs */}
-            <div className="bg-white rounded-xl shadow-sm border overflow-hidden">
-                <div className="flex border-b">
-                    <button
-                        onClick={() => setActiveTab("templates")}
-                        className={`flex-1 px-4 py-3 text-sm font-medium transition ${activeTab === "templates"
-                            ? "bg-primary-50 text-primary-600 border-b-2 border-primary-600"
-                            : "text-gray-500 hover:text-gray-700"
-                            }`}
-                    >
-                        📋 Test Templates ({templates.length})
-                    </button>
-                    <button
-                        onClick={() => setActiveTab("generated")}
-                        className={`flex-1 px-4 py-3 text-sm font-medium transition ${activeTab === "generated"
-                            ? "bg-primary-50 text-primary-600 border-b-2 border-primary-600"
-                            : "text-gray-500 hover:text-gray-700"
-                            }`}
-                    >
-                        🤖 Generated Tests ({generatedTests.length})
-                    </button>
+            {/* Generated Tests */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-100">
+                <div className="p-6 border-b border-gray-100">
+                    <h2 className="text-lg font-semibold text-gray-900">Generated Tests ({dailyTests.length})</h2>
                 </div>
 
-                <div className="p-4">
-                    {activeTab === "templates" ? (
-                        /* Templates Grid */
-                        templates.length > 0 ? (
-                            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {templates.map((template) => (
-                                    <div
-                                        key={template.id}
-                                        className="bg-gray-50 rounded-xl p-4 border hover:shadow-md transition"
-                                    >
-                                        <div className="flex items-start justify-between mb-3">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-10 h-10 bg-gradient-to-br from-primary-500 to-blue-600 rounded-lg flex items-center justify-center text-white">
-                                                    {subjectIcons[template.subject] || <FileText size={20} />}
-                                                </div>
-                                                <div>
-                                                    <span className={`text-xs font-medium px-2 py-0.5 rounded ${categoryColors[template.exam_category] || "bg-gray-100 text-gray-700"}`}>
-                                                        {template.exam_category}
-                                                    </span>
-                                                </div>
-                                            </div>
-                                            <div className="flex gap-1">
-                                                <Link
-                                                    href={`/admin/daily-tests/edit/${template.id}`}
-                                                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded"
-                                                >
-                                                    <Edit size={16} />
-                                                </Link>
-                                                <button
-                                                    onClick={() => deleteTemplate(template.id)}
-                                                    className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded"
-                                                >
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        <h3 className="font-semibold text-gray-900 mb-1">{template.name}</h3>
-                                        <p className="text-sm text-gray-500 mb-3">{template.subject}</p>
-
-                                        <div className="flex items-center gap-3 text-xs text-gray-500 mb-4">
-                                            <span className="flex items-center gap-1">
-                                                <FileText size={12} />
-                                                {template.questions_count} Questions
-                                            </span>
-                                            <span className="flex items-center gap-1">
-                                                <Clock size={12} />
-                                                {template.duration_minutes} min
-                                            </span>
-                                            <span className={`px-1.5 py-0.5 rounded text-xs ${template.difficulty === "easy" ? "bg-green-100 text-green-700" :
-                                                template.difficulty === "medium" ? "bg-yellow-100 text-yellow-700" :
-                                                    "bg-red-100 text-red-700"
-                                                }`}>
-                                                {template.difficulty}
-                                            </span>
-                                        </div>
-
-                                        <button
-                                            onClick={() => generateTest(template)}
-                                            disabled={generating === template.id}
-                                            className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white py-2 rounded-lg hover:shadow-lg transition disabled:opacity-50"
-                                        >
-                                            {generating === template.id ? (
-                                                <>
-                                                    <RefreshCw size={16} className="animate-spin" />
-                                                    Generating...
-                                                </>
-                                            ) : (
-                                                <>
-                                                    <Sparkles size={16} />
-                                                    Generate Test
-                                                </>
-                                            )}
-                                        </button>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center py-12">
-                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <Target className="text-gray-400" size={32} />
-                                </div>
-                                <h3 className="font-semibold text-gray-900 mb-2">No templates yet</h3>
-                                <p className="text-gray-500 mb-4">Create your first AI test template to get started</p>
-                                <Link
-                                    href="/admin/daily-tests/new-template"
-                                    className="inline-flex items-center gap-2 bg-primary-600 text-white px-4 py-2 rounded-lg"
-                                >
-                                    <Plus size={18} />
-                                    Create Template
-                                </Link>
-                            </div>
-                        )
+                <div className="p-6">
+                    {dailyTests.length === 0 ? (
+                        <div className="text-center py-12">
+                            <Brain className="mx-auto text-gray-300 mb-4" size={48} />
+                            <h3 className="text-lg font-medium text-gray-900 mb-2">No daily tests generated yet</h3>
+                            <p className="text-gray-500">Generate tests from templates to get started</p>
+                        </div>
                     ) : (
-                        /* Generated Tests List */
-                        generatedTests.length > 0 ? (
-                            <div className="space-y-3">
-                                {generatedTests.map((test) => (
-                                    <div
-                                        key={test.id}
-                                        className="flex items-center justify-between p-4 bg-gray-50 rounded-xl border"
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-600 rounded-xl flex items-center justify-center text-white">
-                                                <Sparkles size={24} />
-                                            </div>
-                                            <div>
-                                                <h3 className="font-semibold text-gray-900">{test.title}</h3>
-                                                <div className="flex items-center gap-2 mt-1">
-                                                    <span className={`text-xs font-medium px-2 py-0.5 rounded ${categoryColors[test.exam_category] || "bg-gray-100"}`}>
-                                                        {test.exam_category}
-                                                    </span>
-                                                    <span className="text-xs text-gray-500">{test.subject}</span>
-                                                    <span className="text-xs text-gray-400">•</span>
-                                                    <span className="text-xs text-gray-500">
-                                                        {new Date(test.generated_at).toLocaleDateString("en-IN")}
-                                                    </span>
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="bg-gray-50 border-b border-gray-100">
+                                    <tr>
+                                        <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Test</th>
+                                        <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Category</th>
+                                        <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Details</th>
+                                        <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Date</th>
+                                        <th className="text-left px-4 py-3 text-sm font-medium text-gray-500">Status</th>
+                                        <th className="text-right px-4 py-3 text-sm font-medium text-gray-500">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {dailyTests.map((test) => (
+                                        <tr key={test.id} className="hover:bg-gray-50">
+                                            <td className="px-4 py-4">
+                                                <div>
+                                                    <p className="font-medium text-gray-900 text-sm">{test.title}</p>
+                                                    <p className="text-xs text-gray-500">{test.subject}</p>
                                                 </div>
-                                            </div>
-                                        </div>
-
-                                        <div className="flex items-center gap-3">
-                                            <span className={`flex items-center gap-1 text-xs font-medium px-2 py-1 rounded ${statusColors[test.status]?.bg} ${statusColors[test.status]?.text}`}>
-                                                {statusColors[test.status]?.icon}
-                                                {test.status.replace("_", " ")}
-                                            </span>
-
-                                            {test.status === "pending_approval" && (
-                                                <div className="flex gap-2">
-                                                    <button
-                                                        onClick={() => approveTest(test.id)}
-                                                        className="flex items-center gap-1 bg-green-500 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-green-600"
-                                                    >
-                                                        <CheckCircle size={14} />
-                                                        Approve
-                                                    </button>
-                                                    <button
-                                                        onClick={() => rejectTest(test.id)}
-                                                        className="flex items-center gap-1 bg-red-500 text-white px-3 py-1.5 rounded-lg text-sm hover:bg-red-600"
-                                                    >
-                                                        <XCircle size={14} />
-                                                        Reject
-                                                    </button>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                                                    {test.exam_category}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-4 text-sm text-gray-600">
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-1">
+                                                        <FileText size={12} />
+                                                        {test.questions_count} Questions
+                                                    </div>
+                                                    <div className="flex items-center gap-1">
+                                                        <Clock size={12} />
+                                                        {test.duration_minutes} min
+                                                    </div>
+                                                    <div className="text-xs text-gray-500 capitalize">
+                                                        {test.difficulty}
+                                                    </div>
                                                 </div>
-                                            )}
-
-                                            <Link
-                                                href={`/admin/daily-tests/preview/${test.id}`}
-                                                className="flex items-center gap-1 bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg text-sm hover:bg-gray-300"
-                                            >
-                                                <Play size={14} />
-                                                Preview
-                                            </Link>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div className="text-center py-12">
-                                <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                                    <Sparkles className="text-gray-400" size={32} />
-                                </div>
-                                <h3 className="font-semibold text-gray-900 mb-2">No tests generated yet</h3>
-                                <p className="text-gray-500">Click "Generate Test" on any template to create an AI-powered test</p>
-                            </div>
-                        )
+                                            </td>
+                                            <td className="px-4 py-4 text-sm text-gray-600">
+                                                <div className="flex items-center gap-1">
+                                                    <Calendar size={14} />
+                                                    {new Date(test.test_date).toLocaleDateString("en-IN")}
+                                                </div>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <span className={`px-2 py-1 rounded-full text-xs font-medium flex items-center gap-1 ${getStatusColor(test.status)}`}>
+                                                    {getStatusIcon(test.status)}
+                                                    {test.status.replace('_', ' ')}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-4">
+                                                <div className="flex items-center justify-end gap-1">
+                                                    {test.status === 'pending_approval' && (
+                                                        <>
+                                                            <button
+                                                                onClick={() => updateTestStatus(test.id, 'approved')}
+                                                                className="px-2 py-1 text-green-600 hover:bg-green-50 rounded text-xs font-medium"
+                                                                title="Approve"
+                                                            >
+                                                                Approve
+                                                            </button>
+                                                            <button
+                                                                onClick={() => updateTestStatus(test.id, 'rejected')}
+                                                                className="px-2 py-1 text-red-600 hover:bg-red-50 rounded text-xs font-medium"
+                                                                title="Reject"
+                                                            >
+                                                                Reject
+                                                            </button>
+                                                        </>
+                                                    )}
+                                                    {test.status === 'approved' && (
+                                                        <button
+                                                            onClick={() => updateTestStatus(test.id, 'published')}
+                                                            className="px-2 py-1 text-blue-600 hover:bg-blue-50 rounded text-xs font-medium"
+                                                            title="Publish"
+                                                        >
+                                                            Publish
+                                                        </button>
+                                                    )}
+                                                    <Link
+                                                        href={`/admin/daily-tests/preview/${test.id}`}
+                                                        className="p-1.5 text-gray-600 hover:bg-gray-100 rounded"
+                                                        title="Preview"
+                                                    >
+                                                        <Eye size={16} />
+                                                    </Link>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
                     )}
                 </div>
             </div>

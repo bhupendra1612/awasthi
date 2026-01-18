@@ -1,18 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { notFound } from "next/navigation";
-import { BookOpen, Clock, Users, Star, Play, Lock, FileText, CheckCircle } from "lucide-react";
+import { BookOpen, Clock, Users, Star, Play, Lock, FileText, CheckCircle, Folder, ChevronRight, Download } from "lucide-react";
 import Link from "next/link";
-import VideoPlayer from "@/components/VideoPlayer";
-
-interface CourseContent {
-    id: string;
-    title: string;
-    type: "video" | "pdf";
-    url: string;
-    duration: string | null;
-    is_free: boolean;
-    order_index: number;
-}
 
 export default async function CourseDetailPage({
     params,
@@ -46,22 +35,42 @@ export default async function CourseDetailPage({
 
     const isEnrolled = !!enrollment;
 
-    // Fetch course content
-    const { data: content } = await supabase
-        .from("course_content")
+    // Fetch chapters
+    const { data: chapters } = await supabase
+        .from("chapters")
         .select("*")
         .eq("course_id", id)
-        .order("order_index") as { data: CourseContent[] | null };
+        .order("order_index");
 
-    const courseContent = content || [];
-    const freeContent = courseContent.filter(c => c.is_free);
-    const totalVideos = courseContent.filter(c => c.type === "video").length;
-    const totalPdfs = courseContent.filter(c => c.type === "pdf").length;
+    // Fetch videos
+    const { data: videos } = await supabase
+        .from("videos")
+        .select("*")
+        .eq("course_id", id)
+        .order("order_index");
 
-    // Check if URL is a Bunny video ID
-    const isBunnyVideo = (url: string) => {
-        return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(url);
-    };
+    // Fetch documents
+    const { data: documents } = await supabase
+        .from("documents")
+        .select("*")
+        .eq("course_id", id)
+        .order("created_at");
+
+    const allChapters = chapters || [];
+    const allVideos = videos || [];
+    const allDocuments = documents || [];
+
+    const totalVideos = allVideos.length;
+    const totalDocuments = allDocuments.length;
+    const freeVideos = allVideos.filter(v => v.is_free);
+
+    function getVideosByChapter(chapterId: string | null) {
+        return allVideos.filter((v) => v.chapter_id === chapterId);
+    }
+
+    function getDocumentsByChapter(chapterId: string | null) {
+        return allDocuments.filter((d) => d.chapter_id === chapterId);
+    }
 
     return (
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -102,66 +111,198 @@ export default async function CourseDetailPage({
                             </div>
                             <div className="flex items-center gap-1">
                                 <Clock size={16} />
-                                <span>{course.duration}</span>
+                                <span>6 months</span>
                             </div>
                         </div>
                     </div>
 
-                    {/* Course Content */}
+                    {/* Course Content with Folders */}
                     <div className="bg-white rounded-xl shadow-sm overflow-hidden">
                         <div className="p-6 border-b">
                             <h2 className="text-lg font-bold text-gray-900">Course Content</h2>
                             <p className="text-sm text-gray-500 mt-1">
-                                {totalVideos} videos • {totalPdfs} PDFs
+                                {totalVideos} videos • {totalDocuments} PDFs
                             </p>
                         </div>
 
-                        {courseContent.length > 0 ? (
+                        {(allChapters.length > 0 || allVideos.length > 0 || allDocuments.length > 0) ? (
                             <div className="divide-y">
-                                {courseContent.map((item, index) => {
-                                    const canAccess = isEnrolled || item.is_free;
+                                {/* Chapters with content */}
+                                {allChapters.map((chapter, chapterIndex) => {
+                                    const chapterVideos = getVideosByChapter(chapter.id);
+                                    const chapterDocs = getDocumentsByChapter(chapter.id);
+
+                                    if (chapterVideos.length === 0 && chapterDocs.length === 0) return null;
 
                                     return (
-                                        <div
-                                            key={item.id}
-                                            className={`p-4 flex items-center gap-4 ${canAccess ? "hover:bg-gray-50" : "opacity-60"}`}
-                                        >
-                                            <div className="w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-sm font-medium text-gray-600">
-                                                {index + 1}
+                                        <div key={chapter.id} className="p-4">
+                                            {/* Chapter Header */}
+                                            <div className="flex items-center gap-3 mb-3">
+                                                <Folder className="text-primary-600" size={20} />
+                                                <div>
+                                                    <h3 className="font-semibold text-gray-900">{chapter.title}</h3>
+                                                    {chapter.description && (
+                                                        <p className="text-sm text-gray-500">{chapter.description}</p>
+                                                    )}
+                                                    <p className="text-xs text-gray-400 mt-1">
+                                                        {chapterVideos.length} videos, {chapterDocs.length} documents
+                                                    </p>
+                                                </div>
                                             </div>
-                                            <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${item.type === "video" ? "bg-blue-100" : "bg-red-100"
-                                                }`}>
-                                                {item.type === "video" ? (
-                                                    <Play className="text-blue-600" size={18} />
-                                                ) : (
-                                                    <FileText className="text-red-600" size={18} />
-                                                )}
+
+                                            {/* Videos in chapter */}
+                                            <div className="ml-8 space-y-2">
+                                                {chapterVideos.map((video, videoIndex) => {
+                                                    const canAccess = isEnrolled || video.is_free;
+                                                    return (
+                                                        <div
+                                                            key={video.id}
+                                                            className={`flex items-center gap-3 p-3 rounded-lg ${canAccess ? "hover:bg-gray-50" : "opacity-60"
+                                                                }`}
+                                                        >
+                                                            <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                                                <Play className="text-blue-600" size={16} />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="font-medium text-gray-900 text-sm truncate">
+                                                                    {videoIndex + 1}. {video.title}
+                                                                </p>
+                                                                <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                                    <span>Video</span>
+                                                                    {video.duration && (
+                                                                        <>
+                                                                            <span>•</span>
+                                                                            <span>{Math.floor(video.duration / 60)} min</span>
+                                                                        </>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                            {video.is_free && (
+                                                                <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
+                                                                    FREE
+                                                                </span>
+                                                            )}
+                                                            {canAccess ? (
+                                                                <ChevronRight className="text-primary-600" size={18} />
+                                                            ) : (
+                                                                <Lock className="text-gray-400" size={18} />
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
+
+                                                {/* Documents in chapter */}
+                                                {chapterDocs.map((doc) => {
+                                                    const canAccess = isEnrolled;
+                                                    return (
+                                                        <div
+                                                            key={doc.id}
+                                                            className={`flex items-center gap-3 p-3 rounded-lg ${canAccess ? "hover:bg-gray-50" : "opacity-60"
+                                                                }`}
+                                                        >
+                                                            <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                                                                <FileText className="text-red-600" size={16} />
+                                                            </div>
+                                                            <div className="flex-1 min-w-0">
+                                                                <p className="font-medium text-gray-900 text-sm truncate">
+                                                                    {doc.title}
+                                                                </p>
+                                                                <p className="text-xs text-gray-500">PDF Document</p>
+                                                            </div>
+                                                            {canAccess ? (
+                                                                <Download className="text-primary-600" size={18} />
+                                                            ) : (
+                                                                <Lock className="text-gray-400" size={18} />
+                                                            )}
+                                                        </div>
+                                                    );
+                                                })}
                                             </div>
-                                            <div className="flex-1">
-                                                <p className="font-medium text-gray-900">{item.title}</p>
-                                                <p className="text-sm text-gray-500">
-                                                    {item.type === "video" ? "Video" : "PDF"}
-                                                    {item.duration && ` • ${item.duration}`}
-                                                </p>
-                                            </div>
-                                            {item.is_free && (
-                                                <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
-                                                    FREE
-                                                </span>
-                                            )}
-                                            {canAccess ? (
-                                                <Link
-                                                    href={`/course/${id}/content/${item.id}`}
-                                                    className="text-primary-600 hover:text-primary-700 font-medium text-sm"
-                                                >
-                                                    {item.type === "video" ? "Watch" : "View"}
-                                                </Link>
-                                            ) : (
-                                                <Lock className="text-gray-400" size={18} />
-                                            )}
                                         </div>
                                     );
                                 })}
+
+                                {/* Uncategorized content */}
+                                {(getVideosByChapter(null).length > 0 || getDocumentsByChapter(null).length > 0) && (
+                                    <div className="p-4">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <BookOpen className="text-gray-600" size={20} />
+                                            <div>
+                                                <h3 className="font-semibold text-gray-900">Other Content</h3>
+                                                <p className="text-xs text-gray-400 mt-1">
+                                                    {getVideosByChapter(null).length} videos, {getDocumentsByChapter(null).length} documents
+                                                </p>
+                                            </div>
+                                        </div>
+
+                                        <div className="ml-8 space-y-2">
+                                            {getVideosByChapter(null).map((video, videoIndex) => {
+                                                const canAccess = isEnrolled || video.is_free;
+                                                return (
+                                                    <div
+                                                        key={video.id}
+                                                        className={`flex items-center gap-3 p-3 rounded-lg ${canAccess ? "hover:bg-gray-50" : "opacity-60"
+                                                            }`}
+                                                    >
+                                                        <div className="w-8 h-8 rounded-lg bg-blue-100 flex items-center justify-center flex-shrink-0">
+                                                            <Play className="text-blue-600" size={16} />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-medium text-gray-900 text-sm truncate">
+                                                                {videoIndex + 1}. {video.title}
+                                                            </p>
+                                                            <div className="flex items-center gap-2 text-xs text-gray-500">
+                                                                <span>Video</span>
+                                                                {video.duration && (
+                                                                    <>
+                                                                        <span>•</span>
+                                                                        <span>{Math.floor(video.duration / 60)} min</span>
+                                                                    </>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                        {video.is_free && (
+                                                            <span className="text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded">
+                                                                FREE
+                                                            </span>
+                                                        )}
+                                                        {canAccess ? (
+                                                            <ChevronRight className="text-primary-600" size={18} />
+                                                        ) : (
+                                                            <Lock className="text-gray-400" size={18} />
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+
+                                            {getDocumentsByChapter(null).map((doc) => {
+                                                const canAccess = isEnrolled;
+                                                return (
+                                                    <div
+                                                        key={doc.id}
+                                                        className={`flex items-center gap-3 p-3 rounded-lg ${canAccess ? "hover:bg-gray-50" : "opacity-60"
+                                                            }`}
+                                                    >
+                                                        <div className="w-8 h-8 rounded-lg bg-red-100 flex items-center justify-center flex-shrink-0">
+                                                            <FileText className="text-red-600" size={16} />
+                                                        </div>
+                                                        <div className="flex-1 min-w-0">
+                                                            <p className="font-medium text-gray-900 text-sm truncate">
+                                                                {doc.title}
+                                                            </p>
+                                                            <p className="text-xs text-gray-500">PDF Document</p>
+                                                        </div>
+                                                        {canAccess ? (
+                                                            <Download className="text-primary-600" size={18} />
+                                                        ) : (
+                                                            <Lock className="text-gray-400" size={18} />
+                                                        )}
+                                                    </div>
+                                                );
+                                            })}
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         ) : (
                             <div className="p-8 text-center">
@@ -170,16 +311,6 @@ export default async function CourseDetailPage({
                             </div>
                         )}
                     </div>
-
-                    {/* Free Preview Section */}
-                    {freeContent.length > 0 && !isEnrolled && (
-                        <div className="bg-white rounded-xl shadow-sm p-6 mt-6">
-                            <h2 className="text-lg font-bold text-gray-900 mb-4">Free Preview</h2>
-                            {freeContent[0].type === "video" && isBunnyVideo(freeContent[0].url) && (
-                                <VideoPlayer videoId={freeContent[0].url} title={freeContent[0].title} />
-                            )}
-                        </div>
-                    )}
                 </div>
 
                 {/* Sidebar - Enrollment Card */}
@@ -194,9 +325,9 @@ export default async function CourseDetailPage({
                                 <p className="text-gray-500 text-sm mb-6">
                                     You have full access to all course content.
                                 </p>
-                                {courseContent.length > 0 && (
+                                {allVideos.length > 0 && (
                                     <Link
-                                        href={`/course/${id}/content/${courseContent[0].id}`}
+                                        href={`/course/${id}/learn`}
                                         className="block w-full bg-primary-600 text-white py-3 rounded-lg hover:bg-primary-700 transition font-medium text-center"
                                     >
                                         Start Learning
@@ -243,7 +374,7 @@ export default async function CourseDetailPage({
                                     </div>
                                     <div className="flex items-center gap-2 text-sm text-gray-600">
                                         <FileText size={16} className="text-primary-600" />
-                                        <span>{totalPdfs} PDF notes</span>
+                                        <span>{totalDocuments} PDF notes</span>
                                     </div>
                                     <div className="flex items-center gap-2 text-sm text-gray-600">
                                         <Clock size={16} className="text-primary-600" />

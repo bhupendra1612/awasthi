@@ -18,9 +18,7 @@ export default function NewBlogPage() {
         title: "",
         excerpt: "",
         content: "",
-        category: "Study Tips",
-        author: "Bard of Maths",
-        image_url: null as string | null,
+        cover_image: null as string | null,
     });
 
     const generateSlug = (title: string) => {
@@ -37,6 +35,9 @@ export default function NewBlogPage() {
         setError("");
 
         try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) throw new Error("Not authenticated");
+
             const slug = generateSlug(formData.title);
 
             const { error } = await supabase.from("blogs").insert({
@@ -44,17 +45,20 @@ export default function NewBlogPage() {
                 slug,
                 excerpt: formData.excerpt || null,
                 content: formData.content,
-                category: formData.category,
-                author: formData.author,
-                image_url: formData.image_url,
+                cover_image: formData.cover_image,
+                author_id: user.id,
                 is_published: false,
             });
 
-            if (error) throw error;
+            if (error) {
+                console.error("Blog insert error:", error);
+                throw new Error(error.message || "Failed to create blog");
+            }
 
             router.push("/admin/blogs");
             router.refresh();
         } catch (err) {
+            console.error("Full blog error:", err);
             setError(err instanceof Error ? err.message : "Failed to create blog");
         } finally {
             setLoading(false);
@@ -83,9 +87,9 @@ export default function NewBlogPage() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Featured Image */}
                     <ImageUploader
-                        currentImageUrl={formData.image_url}
-                        onImageChange={(url) => setFormData({ ...formData, image_url: url })}
-                        folder="banners"
+                        currentImageUrl={formData.cover_image}
+                        onImageChange={(url) => setFormData({ ...formData, cover_image: url })}
+                        folder="blogs"
                         label="Featured Image"
                         aspectRatio="video"
                     />
@@ -115,39 +119,6 @@ export default function NewBlogPage() {
                             placeholder="Brief description for preview..."
                             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                         />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Category
-                            </label>
-                            <select
-                                value={formData.category}
-                                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                            >
-                                <option>Study Tips</option>
-                                <option>Exam Preparation</option>
-                                <option>Mathematics</option>
-                                <option>Science</option>
-                                <option>Career Guidance</option>
-                                <option>Announcements</option>
-                                <option>General</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Author
-                            </label>
-                            <input
-                                type="text"
-                                value={formData.author}
-                                onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-                                placeholder="Author name"
-                                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                            />
-                        </div>
                     </div>
 
                     <div>

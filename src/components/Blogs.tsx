@@ -11,10 +11,17 @@ interface Blog {
     title: string;
     slug: string;
     excerpt: string | null;
-    image_url: string | null;
-    category: string;
-    author: string;
+    cover_image?: string | null;
+    author_id?: string;
     created_at: string;
+    profiles?: {
+        full_name?: string;
+        email?: string;
+    } | null;
+    author?: {
+        full_name?: string;
+        email?: string;
+    } | null;
 }
 
 export default function Blogs() {
@@ -28,19 +35,46 @@ export default function Blogs() {
     }, []);
 
     const fetchBlogs = async () => {
-        const { data, error } = await supabase
-            .from("blogs")
-            .select("id, title, slug, excerpt, image_url, category, author, created_at")
-            .eq("is_published", true)
-            .order("created_at", { ascending: false })
-            .limit(3);
+        try {
+            const { data, error } = await supabase
+                .from("blogs")
+                .select(`
+                    id, 
+                    title, 
+                    slug, 
+                    excerpt, 
+                    cover_image, 
+                    author_id,
+                    created_at,
+                    profiles!blogs_author_id_fkey(full_name, email)
+                `)
+                .eq("is_published", true)
+                .order("created_at", { ascending: false })
+                .limit(3);
 
-        if (error) {
-            console.error("Error fetching blogs:", error);
-        } else {
-            setBlogs(data || []);
+            if (error) {
+                console.error("Error fetching blogs:", {
+                    message: error.message,
+                    details: error.details,
+                    hint: error.hint,
+                    code: error.code
+                });
+            } else {
+                // Process the data to match our interface
+                const processedBlogs = (data || []).map(blog => ({
+                    ...blog,
+                    author: blog.profiles ? {
+                        full_name: blog.profiles.full_name,
+                        email: blog.profiles.email
+                    } : null
+                }));
+                setBlogs(processedBlogs);
+            }
+        } catch (err) {
+            console.error("Error in fetchBlogs:", err);
+        } finally {
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     const formatDate = (dateString: string) => {
@@ -100,9 +134,9 @@ export default function Blogs() {
                         >
                             {/* Image */}
                             <div className="relative h-48 bg-gradient-to-br from-primary-100 to-blue-100 overflow-hidden">
-                                {blog.image_url ? (
+                                {blog.cover_image ? (
                                     <Image
-                                        src={blog.image_url}
+                                        src={blog.cover_image}
                                         alt={blog.title}
                                         fill
                                         className="object-cover group-hover:scale-105 transition-transform duration-300"
@@ -115,7 +149,7 @@ export default function Blogs() {
                                 {/* Category badge */}
                                 <div className="absolute top-4 left-4">
                                     <span className="bg-primary-600 text-white text-xs font-bold px-3 py-1 rounded-full">
-                                        {blog.category}
+                                        Education
                                     </span>
                                 </div>
                             </div>
@@ -130,7 +164,7 @@ export default function Blogs() {
                                     </div>
                                     <div className="flex items-center gap-1">
                                         <User size={14} />
-                                        <span>{blog.author}</span>
+                                        <span>{blog.author?.full_name || 'Awasthi Classes'}</span>
                                     </div>
                                 </div>
 

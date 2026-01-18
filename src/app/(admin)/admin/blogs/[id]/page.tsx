@@ -21,9 +21,7 @@ export default function EditBlogPage() {
         title: "",
         excerpt: "",
         content: "",
-        category: "Study Tips",
-        author: "Bard of Maths",
-        image_url: null as string | null,
+        cover_image: "",
         is_published: false,
     });
 
@@ -42,13 +40,11 @@ export default function EditBlogPage() {
             setError("Blog not found");
         } else {
             setFormData({
-                title: data.title,
+                title: data.title || "",
                 excerpt: data.excerpt || "",
-                content: data.content,
-                category: data.category,
-                author: data.author,
-                image_url: data.image_url,
-                is_published: data.is_published,
+                content: data.content || "",
+                cover_image: data.cover_image || "",
+                is_published: data.is_published || false,
             });
         }
         setFetching(false);
@@ -66,19 +62,21 @@ export default function EditBlogPage() {
                     title: formData.title,
                     excerpt: formData.excerpt || null,
                     content: formData.content,
-                    category: formData.category,
-                    author: formData.author,
-                    image_url: formData.image_url,
+                    cover_image: formData.cover_image || null,
                     is_published: formData.is_published,
                     updated_at: new Date().toISOString(),
                 })
                 .eq("id", blogId);
 
-            if (error) throw error;
+            if (error) {
+                console.error("Blog update error:", error);
+                throw new Error(error.message || "Failed to update blog");
+            }
 
             router.push("/admin/blogs");
             router.refresh();
         } catch (err) {
+            console.error("Full blog update error:", err);
             setError(err instanceof Error ? err.message : "Failed to update blog");
         } finally {
             setLoading(false);
@@ -115,9 +113,9 @@ export default function EditBlogPage() {
                 <form onSubmit={handleSubmit} className="space-y-6">
                     {/* Featured Image */}
                     <ImageUploader
-                        currentImageUrl={formData.image_url}
-                        onImageChange={(url) => setFormData({ ...formData, image_url: url })}
-                        folder="banners"
+                        currentImageUrl={formData.cover_image}
+                        onImageChange={(url) => setFormData({ ...formData, cover_image: url || "" })}
+                        folder="blogs"
                         label="Featured Image"
                         aspectRatio="video"
                     />
@@ -147,39 +145,6 @@ export default function EditBlogPage() {
                             placeholder="Brief description for preview..."
                             className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
                         />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Category
-                            </label>
-                            <select
-                                value={formData.category}
-                                onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                            >
-                                <option>Study Tips</option>
-                                <option>Exam Preparation</option>
-                                <option>Mathematics</option>
-                                <option>Science</option>
-                                <option>Career Guidance</option>
-                                <option>Announcements</option>
-                                <option>General</option>
-                            </select>
-                        </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">
-                                Author
-                            </label>
-                            <input
-                                type="text"
-                                value={formData.author}
-                                onChange={(e) => setFormData({ ...formData, author: e.target.value })}
-                                placeholder="Author name"
-                                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none"
-                            />
-                        </div>
                     </div>
 
                     <div>

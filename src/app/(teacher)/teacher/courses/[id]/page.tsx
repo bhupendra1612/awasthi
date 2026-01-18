@@ -3,9 +3,41 @@
 import { useState, useEffect } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { ArrowLeft, Loader2, Clock, CheckCircle, XCircle } from "lucide-react";
+import { ArrowLeft, Loader2, BookOpen, Target, Video, FileText, Info, Save, CheckCircle } from "lucide-react";
 import Link from "next/link";
 import ImageUploader from "@/components/admin/ImageUploader";
+
+const examCategories = [
+    { value: "SSC", label: "SSC (CGL, CHSL, MTS)" },
+    { value: "Railway", label: "Railway (NTPC, Group D, ALP)" },
+    { value: "Bank", label: "Bank (IBPS, SBI, RBI)" },
+    { value: "RPSC", label: "RPSC (RAS, 1st Grade, 2nd Grade)" },
+    { value: "RSMSSB", label: "RSMSSB (Patwari, LDC, JE)" },
+    { value: "Police", label: "Police (Constable, SI)" },
+    { value: "REET", label: "REET (Level 1 & 2)" },
+    { value: "Other", label: "Other Government Exams" },
+];
+
+const subjects = [
+    { value: "Mathematics", label: "Mathematics / Quantitative Aptitude" },
+    { value: "Reasoning", label: "Reasoning / Mental Ability" },
+    { value: "English", label: "English Language" },
+    { value: "Hindi", label: "Hindi Language" },
+    { value: "General Knowledge", label: "General Knowledge" },
+    { value: "Current Affairs", label: "Current Affairs" },
+    { value: "Rajasthan GK", label: "Rajasthan GK" },
+    { value: "Science", label: "General Science" },
+    { value: "Computer", label: "Computer Knowledge" },
+    { value: "Complete Course", label: "Complete Course (All Subjects)" },
+];
+
+const durations = [
+    { value: "1 Month", label: "1 Month" },
+    { value: "3 Months", label: "3 Months" },
+    { value: "6 Months", label: "6 Months" },
+    { value: "1 Year", label: "1 Year (Full Course)" },
+    { value: "Until Exam", label: "Until Exam" },
+];
 
 export default function EditTeacherCoursePage() {
     const params = useParams();
@@ -16,19 +48,21 @@ export default function EditTeacherCoursePage() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState("");
+    const [success, setSuccess] = useState("");
     const [course, setCourse] = useState<any>(null);
 
     const [formData, setFormData] = useState({
         title: "",
         description: "",
-        class: "SSC",
-        subject: "General Knowledge",
-        board: "Central Government",
+        exam_category: "SSC",
+        subject: "Mathematics",
+        difficulty: "Intermediate",
         price: "",
         original_price: "",
         duration: "6 Months",
         is_combo: false,
         thumbnail_url: null as string | null,
+        language: "Hindi",
     });
 
     useEffect(() => {
@@ -36,14 +70,10 @@ export default function EditTeacherCoursePage() {
     }, [courseId]);
 
     async function fetchCourse() {
-        const { data: { user } } = await supabase.auth.getUser();
-        if (!user) return;
-
         const { data } = await supabase
             .from("courses")
             .select("*")
             .eq("id", courseId)
-            .eq("teacher_id", user.id)
             .single();
 
         if (data) {
@@ -51,14 +81,15 @@ export default function EditTeacherCoursePage() {
             setFormData({
                 title: data.title || "",
                 description: data.description || "",
-                class: data.class || "SSC",
-                subject: data.subject || "General Knowledge",
-                board: data.board || "Central Government",
+                exam_category: data.class || "SSC", // Reading from 'class' column
+                subject: data.subject || "Mathematics",
+                difficulty: "Intermediate", // Default since column doesn't exist
                 price: data.price?.toString() || "",
                 original_price: data.original_price?.toString() || "",
-                duration: data.duration || "6 Months",
+                duration: "6 Months", // Default since column doesn't exist
                 is_combo: data.is_combo || false,
                 thumbnail_url: data.thumbnail_url || null,
+                language: "Hindi", // Default since column doesn't exist
             });
         }
         setLoading(false);
@@ -68,33 +99,28 @@ export default function EditTeacherCoursePage() {
         e.preventDefault();
         setSaving(true);
         setError("");
+        setSuccess("");
 
         try {
-            // If course was rejected, resubmit for approval
-            const newStatus = course.approval_status === "rejected" ? "pending" : course.approval_status;
-
             const { error } = await supabase
                 .from("courses")
                 .update({
                     title: formData.title,
                     description: formData.description,
-                    class: formData.class,
+                    class: formData.exam_category,
                     subject: formData.subject,
-                    board: formData.board,
-                    price: parseInt(formData.price),
+                    price: parseInt(formData.price) || 0,
                     original_price: formData.original_price ? parseInt(formData.original_price) : null,
-                    duration: formData.duration,
                     is_combo: formData.is_combo,
                     thumbnail_url: formData.thumbnail_url,
-                    approval_status: newStatus,
-                    rejection_reason: newStatus === "pending" ? null : course.rejection_reason,
                     updated_at: new Date().toISOString(),
                 })
                 .eq("id", courseId);
 
             if (error) throw error;
 
-            router.push("/teacher/courses");
+            setSuccess("Course updated successfully!");
+            setTimeout(() => setSuccess(""), 3000);
         } catch (err) {
             setError(err instanceof Error ? err.message : "Failed to update course");
         } finally {
@@ -105,7 +131,10 @@ export default function EditTeacherCoursePage() {
     if (loading) {
         return (
             <div className="flex items-center justify-center py-20">
-                <Loader2 className="animate-spin text-purple-600" size={32} />
+                <div className="text-center">
+                    <Loader2 className="animate-spin text-primary-600 mx-auto mb-4" size={40} />
+                    <p className="text-gray-500">Loading course...</p>
+                </div>
             </div>
         );
     }
@@ -113,248 +142,251 @@ export default function EditTeacherCoursePage() {
     if (!course) {
         return (
             <div className="text-center py-20">
+                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <BookOpen className="text-gray-400" size={36} />
+                </div>
                 <h2 className="text-2xl font-bold text-gray-900 mb-2">Course Not Found</h2>
-                <p className="text-gray-500">This course doesn't exist or you don't have access.</p>
+                <p className="text-gray-500 mb-4">This course doesn't exist or you don't have access.</p>
+                <Link href="/teacher/courses" className="text-primary-600 hover:underline">
+                    ← Back to Courses
+                </Link>
             </div>
         );
     }
 
     return (
-        <div className="max-w-2xl">
+        <div className="max-w-3xl mx-auto">
             <Link
                 href="/teacher/courses"
-                className="inline-flex items-center gap-2 text-gray-500 hover:text-gray-700 mb-6"
+                className="inline-flex items-center gap-2 text-gray-500 hover:text-primary-600 mb-6 transition"
             >
                 <ArrowLeft size={20} />
                 Back to Courses
             </Link>
 
-            <div className="bg-white rounded-xl shadow-sm p-8">
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-bold text-gray-900">Edit Course</h2>
-                    <span className={`px-3 py-1 rounded-full text-sm font-medium flex items-center gap-1 ${course.approval_status === "pending" ? "bg-yellow-100 text-yellow-700" :
-                        course.approval_status === "approved" ? "bg-green-100 text-green-700" :
-                            "bg-red-100 text-red-700"
-                        }`}>
-                        {course.approval_status === "pending" && <Clock size={14} />}
-                        {course.approval_status === "approved" && <CheckCircle size={14} />}
-                        {course.approval_status === "rejected" && <XCircle size={14} />}
-                        {course.approval_status}
-                    </span>
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                {/* Header */}
+                <div className="bg-gradient-to-r from-primary-600 via-blue-600 to-purple-600 p-6 text-white">
+                    <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                                <BookOpen size={24} />
+                            </div>
+                            <div>
+                                <h2 className="text-2xl font-bold">Edit Course</h2>
+                                <p className="text-primary-100">Update your course details</p>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                {/* Rejection Reason */}
-                {course.approval_status === "rejected" && course.rejection_reason && (
-                    <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-                        <p className="text-sm text-red-600 font-medium">Rejection Reason:</p>
-                        <p className="text-red-700">{course.rejection_reason}</p>
-                        <p className="text-sm text-red-600 mt-2">
-                            Make the necessary changes and save to resubmit for approval.
-                        </p>
-                    </div>
-                )}
-
-                <div className="bg-purple-50 border border-purple-200 rounded-lg p-4 mb-6">
-                    <h3 className="text-sm font-semibold text-purple-800 mb-2">📚 Government Exam Course Guidelines</h3>
-                    <ul className="text-sm text-purple-700 space-y-1">
-                        <li>• Choose the appropriate exam category (SSC, Railway, Bank, etc.)</li>
-                        <li>• Select relevant subjects for the chosen exam type</li>
-                        <li>• Set competitive pricing for government exam preparation</li>
-                        <li>• Use clear, descriptive titles mentioning the exam name</li>
-                    </ul>
-                </div>
-
-                {error && (
-                    <div className="bg-red-50 text-red-600 px-4 py-3 rounded-lg mb-6 text-sm">
-                        {error}
-                    </div>
-                )}
-
-                <form onSubmit={handleSubmit} className="space-y-6">
-                    {/* Thumbnail Upload */}
-                    <ImageUploader
-                        currentImageUrl={formData.thumbnail_url}
-                        onImageChange={(url) => setFormData({ ...formData, thumbnail_url: url })}
-                        folder="courses"
-                        label="Course Thumbnail"
-                        aspectRatio="video"
-                    />
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Course Title *
-                        </label>
-                        <input
-                            type="text"
-                            value={formData.title}
-                            onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                            placeholder="e.g., SSC CGL Complete Course 2024"
-                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                            required
-                        />
-                    </div>
-
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                            Description
-                        </label>
-                        <textarea
-                            value={formData.description}
-                            onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                            placeholder="Comprehensive preparation course for government competitive exams..."
-                            rows={4}
-                            className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                        />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Exam Category *</label>
-                            <select
-                                value={formData.class}
-                                onChange={(e) => setFormData({ ...formData, class: e.target.value })}
-                                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                            >
-                                <option value="SSC">SSC (Staff Selection Commission)</option>
-                                <option value="Railway">Railway Recruitment</option>
-                                <option value="Bank">Banking Exams</option>
-                                <option value="RPSC">RPSC (Rajasthan PSC)</option>
-                                <option value="RSMSSB">RSMSSB (Rajasthan Subordinate)</option>
-                                <option value="Police">Police Recruitment</option>
-                                <option value="UPSC">UPSC Civil Services</option>
-                                <option value="State PSC">State PSC</option>
-                                <option value="Defense">Defense Exams</option>
-                                <option value="Teaching">Teaching Exams</option>
-                                <option value="Other">Other Government Exams</option>
-                            </select>
+                <div className="p-8">
+                    {/* Success Message */}
+                    {success && (
+                        <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-6 flex items-center gap-2">
+                            <CheckCircle className="text-green-500" size={20} />
+                            <span className="text-green-700">{success}</span>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Subject *</label>
-                            <select
-                                value={formData.subject}
-                                onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
-                                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                            >
-                                <option value="General Knowledge">General Knowledge</option>
-                                <option value="Current Affairs">Current Affairs</option>
-                                <option value="Reasoning">Reasoning & Logic</option>
-                                <option value="Quantitative Aptitude">Quantitative Aptitude</option>
-                                <option value="English">English Language</option>
-                                <option value="Hindi">Hindi Language</option>
-                                <option value="Mathematics">Mathematics</option>
-                                <option value="General Science">General Science</option>
-                                <option value="Computer Knowledge">Computer Knowledge</option>
-                                <option value="Geography">Geography</option>
-                                <option value="History">History</option>
-                                <option value="Polity">Indian Polity</option>
-                                <option value="Economics">Economics</option>
-                                <option value="All Subjects">All Subjects (Complete Package)</option>
-                            </select>
-                        </div>
-                    </div>
+                    )}
 
-                    <div className="grid grid-cols-2 gap-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Exam Level</label>
-                            <select
-                                value={formData.board}
-                                onChange={(e) => setFormData({ ...formData, board: e.target.value })}
-                                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                            >
-                                <option value="Central Government">Central Government</option>
-                                <option value="State Government">State Government</option>
-                                <option value="Rajasthan State">Rajasthan State</option>
-                                <option value="All India">All India Level</option>
-                                <option value="Regional">Regional Level</option>
-                            </select>
+                    {/* Error Message */}
+                    {error && (
+                        <div className="bg-red-50 border border-red-200 rounded-xl p-4 mb-6 flex items-center gap-2">
+                            <Info className="text-red-500" size={20} />
+                            <span className="text-red-700">{error}</span>
                         </div>
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Course Duration</label>
-                            <select
-                                value={formData.duration}
-                                onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
-                                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
-                            >
-                                <option value="1 Month">1 Month</option>
-                                <option value="2 Months">2 Months</option>
-                                <option value="3 Months">3 Months</option>
-                                <option value="6 Months">6 Months</option>
-                                <option value="1 Year">1 Year</option>
-                                <option value="18 Months">18 Months</option>
-                                <option value="2 Years">2 Years</option>
-                                <option value="Until Selection">Until Selection</option>
-                            </select>
-                        </div>
-                    </div>
+                    )}
 
-                    <div className="grid grid-cols-2 gap-4">
+                    <form onSubmit={handleSubmit} className="space-y-6">
+                        {/* Thumbnail */}
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Price (₹) *</label>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Course Thumbnail</label>
+                            <ImageUploader
+                                currentImageUrl={formData.thumbnail_url}
+                                onImageChange={(url) => setFormData({ ...formData, thumbnail_url: url })}
+                                folder="course-thumbnails"
+                                label="Upload Thumbnail"
+                                aspectRatio="video"
+                            />
+                        </div>
+
+                        {/* Title & Description */}
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Course Title *</label>
                             <input
-                                type="number"
-                                value={formData.price}
-                                onChange={(e) => setFormData({ ...formData, price: e.target.value })}
-                                placeholder="e.g., 2999 for SSC, 4999 for Railway"
-                                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                                type="text"
+                                value={formData.title}
+                                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                                placeholder="e.g., SSC CGL Mathematics Complete Course"
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
                                 required
                             />
-                            <p className="text-xs text-gray-500 mt-1">Suggested: SSC ₹2999, Railway ₹4999, Bank ₹3999</p>
                         </div>
+
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-2">Original Price (₹)</label>
-                            <input
-                                type="number"
-                                value={formData.original_price}
-                                onChange={(e) => setFormData({ ...formData, original_price: e.target.value })}
-                                placeholder="e.g., 4999 (for discount display)"
-                                className="w-full px-4 py-3 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent outline-none"
+                            <label className="block text-sm font-medium text-gray-700 mb-2">Description</label>
+                            <textarea
+                                value={formData.description}
+                                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                                placeholder="Describe what students will learn..."
+                                rows={4}
+                                className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition resize-none"
                             />
-                            <p className="text-xs text-gray-500 mt-1">Optional: Show original price for discount effect</p>
                         </div>
-                    </div>
 
-                    <div className="flex items-center gap-3 bg-gray-50 p-4 rounded-lg">
-                        <input
-                            type="checkbox"
-                            id="is_combo"
-                            checked={formData.is_combo}
-                            onChange={(e) => setFormData({ ...formData, is_combo: e.target.checked })}
-                            className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
-                        />
-                        <label htmlFor="is_combo" className="text-sm text-gray-700">
-                            Complete Package (multiple subjects/topics)
+                        {/* Exam & Subject */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                                    <Target size={16} className="text-primary-600" />
+                                    Target Exam *
+                                </label>
+                                <select
+                                    value={formData.exam_category}
+                                    onChange={(e) => setFormData({ ...formData, exam_category: e.target.value })}
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                                >
+                                    {examCategories.map(cat => (
+                                        <option key={cat.value} value={cat.value}>{cat.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                                    <BookOpen size={16} className="text-primary-600" />
+                                    Subject *
+                                </label>
+                                <select
+                                    value={formData.subject}
+                                    onChange={(e) => setFormData({ ...formData, subject: e.target.value })}
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                                >
+                                    {subjects.map(sub => (
+                                        <option key={sub.value} value={sub.value}>{sub.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Duration & Language */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Duration</label>
+                                <select
+                                    value={formData.duration}
+                                    onChange={(e) => setFormData({ ...formData, duration: e.target.value })}
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                                >
+                                    {durations.map(dur => (
+                                        <option key={dur.value} value={dur.value}>{dur.label}</option>
+                                    ))}
+                                </select>
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Language</label>
+                                <select
+                                    value={formData.language}
+                                    onChange={(e) => setFormData({ ...formData, language: e.target.value })}
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                                >
+                                    <option value="Hindi">Hindi</option>
+                                    <option value="English">English</option>
+                                    <option value="Hindi + English">Hindi + English (Bilingual)</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        {/* Pricing */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Price (₹) *</label>
+                                <input
+                                    type="number"
+                                    value={formData.price}
+                                    onChange={(e) => setFormData({ ...formData, price: e.target.value })}
+                                    placeholder="999"
+                                    min="0"
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">Original Price (₹)</label>
+                                <input
+                                    type="number"
+                                    value={formData.original_price}
+                                    onChange={(e) => setFormData({ ...formData, original_price: e.target.value })}
+                                    placeholder="1499"
+                                    min="0"
+                                    className="w-full px-4 py-3 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary-500 focus:border-transparent outline-none transition"
+                                />
+                            </div>
+                        </div>
+
+                        {/* Combo Checkbox */}
+                        <label className="flex items-center gap-3 p-4 bg-gray-50 rounded-xl cursor-pointer hover:bg-gray-100 transition">
+                            <input
+                                type="checkbox"
+                                checked={formData.is_combo}
+                                onChange={(e) => setFormData({ ...formData, is_combo: e.target.checked })}
+                                className="w-5 h-5 text-primary-600 rounded focus:ring-primary-500"
+                            />
+                            <div>
+                                <span className="font-medium text-gray-900">Combo Course</span>
+                                <p className="text-sm text-gray-500">Multiple subjects in one course</p>
+                            </div>
                         </label>
-                    </div>
 
-                    <div className="flex gap-4 pt-4">
-                        <button
-                            type="submit"
-                            disabled={saving}
-                            className="flex-1 bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition font-medium disabled:opacity-50 flex items-center justify-center"
-                        >
-                            {saving ? <Loader2 className="animate-spin" size={20} /> :
-                                course.approval_status === "rejected" ? "Resubmit for Approval" : "Save Changes"}
-                        </button>
-                        <Link
-                            href="/teacher/courses"
-                            className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition text-center"
-                        >
-                            Cancel
-                        </Link>
-                    </div>
-                </form>
+                        {/* Submit Buttons */}
+                        <div className="flex gap-4 pt-4">
+                            <button
+                                type="submit"
+                                disabled={saving}
+                                className="flex-1 bg-gradient-to-r from-primary-600 to-blue-600 text-white py-3.5 rounded-xl hover:shadow-lg hover:shadow-primary-600/30 transition-all font-medium disabled:opacity-50 flex items-center justify-center gap-2"
+                            >
+                                {saving ? (
+                                    <Loader2 className="animate-spin" size={20} />
+                                ) : (
+                                    <>
+                                        <Save size={20} />
+                                        Save Changes
+                                    </>
+                                )}
+                            </button>
+                            <Link
+                                href="/teacher/courses"
+                                className="px-6 py-3.5 border border-gray-300 text-gray-700 rounded-xl hover:bg-gray-50 transition text-center font-medium"
+                            >
+                                Cancel
+                            </Link>
+                        </div>
+                    </form>
+                </div>
             </div>
 
-            {/* Content Management Link */}
-            <div className="mt-6 bg-white rounded-xl shadow-sm p-6">
-                <h3 className="text-lg font-semibold text-gray-900 mb-2">Course Content</h3>
-                <p className="text-gray-500 text-sm mb-4">Add videos and documents to this course</p>
-                <Link
-                    href={`/teacher/courses/${courseId}/content`}
-                    className="inline-block bg-gray-100 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-200 transition"
-                >
-                    Manage Content →
-                </Link>
+            {/* Content Management */}
+            <div className="mt-6 bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-100 to-cyan-100 rounded-xl flex items-center justify-center">
+                            <Video className="text-blue-600" size={24} />
+                        </div>
+                        <div>
+                            <h3 className="text-lg font-semibold text-gray-900">Course Content</h3>
+                            <p className="text-gray-500 text-sm">Add videos and documents to this course</p>
+                        </div>
+                    </div>
+                    <Link
+                        href={`/teacher/courses/${courseId}/content`}
+                        className="bg-gradient-to-r from-blue-50 to-cyan-50 text-blue-700 px-5 py-2.5 rounded-xl hover:from-blue-100 hover:to-cyan-100 transition font-medium flex items-center gap-2"
+                    >
+                        <FileText size={18} />
+                        Manage Content
+                    </Link>
+                </div>
             </div>
         </div>
     );

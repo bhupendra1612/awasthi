@@ -41,8 +41,16 @@ export default function Header() {
 
     return (
         <div className="fixed top-0 left-0 right-0 z-50">
+            {/* Mobile Menu Backdrop */}
+            {isMenuOpen && (
+                <div
+                    className="md:hidden fixed inset-0 bg-black/20 backdrop-blur-sm z-40"
+                    onClick={() => setIsMenuOpen(false)}
+                />
+            )}
+
             {/* Main Header */}
-            <header className={`transition-all duration-300 ${isScrolled
+            <header className={`relative z-50 transition-all duration-300 ${isScrolled
                 ? "bg-white shadow-lg"
                 : "bg-white/95 backdrop-blur-md"
                 }`}>
@@ -137,8 +145,8 @@ export default function Header() {
                 </nav>
 
                 {/* Mobile Navigation */}
-                <div className={`md:hidden overflow-hidden transition-all duration-300 ${isMenuOpen ? "max-h-[500px]" : "max-h-0"}`}>
-                    <div className="px-4 py-4 bg-white border-t border-gray-100 space-y-1">
+                <div className={`md:hidden absolute top-full left-0 right-0 bg-white border-t border-gray-100 shadow-lg transition-all duration-300 ${isMenuOpen ? "opacity-100 visible" : "opacity-0 invisible"}`}>
+                    <div className="px-4 py-4 space-y-1 max-h-[calc(100vh-4rem)] overflow-y-auto">
                         {navLinks.map((link) => (
                             <Link
                                 key={link.name}

@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@/lib/supabase/client";
 import Image from "next/image";
 import { Upload, Trash2, Eye, EyeOff, Video, Image as ImageIcon } from "lucide-react";
+import { uploadToBunnyStream, isBunnyStreamConfigured, extractVideoIdFromUrl, deleteFromBunnyStream } from "@/lib/bunny-stream";
 
 interface GalleryItem {
     id: string;
@@ -52,6 +53,17 @@ export default function AdminGalleryPage() {
         order_index: 0,
         is_active: true,
     });
+    const [uploadingVideo, setUploadingVideo] = useState(false);
+    const [uploadingThumbnail, setUploadingThumbnail] = useState(false);
+    const [videoFile, setVideoFile] = useState<File | null>(null);
+    const [thumbnailFile, setThumbnailFile] = useState<File | null>(null);
+    const [uploadProgress, setUploadProgress] = useState(0);
+    const [thumbnailProgress, setThumbnailProgress] = useState(0);
+    const [bunnyConfigured, setBunnyConfigured] = useState(false);
+
+    useEffect(() => {
+        setBunnyConfigured(isBunnyStreamConfigured());
+    }, []);
 
     const categories = [
         { value: "classroom", label: "Classroom" },
@@ -161,20 +173,78 @@ export default function AdminGalleryPage() {
     };
 
     const handleVideoSubmit = async () => {
-        if (!videoFormData.title || !videoFormData.video_url) {
-            alert("Please fill in title and video URL");
+        if (!videoFormData.title) {
+            alert("Please fill in title");
+            return;
+        }
+
+        // Check if we have either a URL or a file
+        if (!videoFormData.video_url && !videoFile) {
+            alert("Please provide a video URL or upload a video file");
             return;
         }
 
         try {
             const supabase = createClient();
+            let finalVideoUrl = videoFormData.video_url;
+            let finalThumbnailUrl = videoFormData.thumbnail_url;
+
+            // Upload video file to Bunny Stream if provided
+            if (videoFile) {
+                if (!bunnyConfigured) {
+                    alert("Bunny Stream is not configured. Please check your .env.local file.");
+                    return;
+                }
+
+                setUploadingVideo(true);
+                setUploadProgress(0);
+
+                const result = await uploadToBunnyStream({
+                    file: videoFile,
+                    title: videoFormData.title,
+                    onProgress: (progress) => setUploadProgress(progress),
+                });
+
+                if (!result.success) {
+                    throw new Error(result.error || "Video upload failed");
+                }
+
+                finalVideoUrl = result.videoUrl!;
+                finalThumbnailUrl = result.thumbnailUrl || finalThumbnailUrl;
+                setUploadingVideo(false);
+            }
+
+            // Upload thumbnail to Supabase Storage if provided (thumbnails are small, no need for Bunny)
+            if (thumbnailFile) {
+                setUploadingThumbnail(true);
+                setThumbnailProgress(0);
+
+                const fileExt = thumbnailFile.name.split(".").pop();
+                const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
+                const filePath = `gallery/${fileName}`;
+
+                const { error: uploadError } = await supabase.storage
+                    .from("gallery")
+                    .upload(filePath, thumbnailFile);
+
+                if (uploadError) throw uploadError;
+
+                const { data: { publicUrl } } = supabase.storage
+                    .from("gallery")
+                    .getPublicUrl(filePath);
+
+                finalThumbnailUrl = publicUrl;
+                setUploadingThumbnail(false);
+            }
+
+            // Insert into database
             const { error } = await supabase
                 .from("video_gallery")
                 .insert({
                     title: videoFormData.title,
                     description: videoFormData.description || null,
-                    video_url: videoFormData.video_url,
-                    thumbnail_url: videoFormData.thumbnail_url || null,
+                    video_url: finalVideoUrl,
+                    thumbnail_url: finalThumbnailUrl || null,
                     category: videoFormData.category,
                     duration: videoFormData.duration || null,
                     order_index: videoFormData.order_index,
@@ -194,10 +264,17 @@ export default function AdminGalleryPage() {
                 order_index: 0,
                 is_active: true,
             });
+            setVideoFile(null);
+            setThumbnailFile(null);
+            setUploadProgress(0);
+            setThumbnailProgress(0);
             fetchVideoItems();
         } catch (error) {
             console.error("Error adding video:", error);
-            alert("Failed to add video");
+            alert(`Failed to add video: ${error instanceof Error ? error.message : "Unknown error"}`);
+        } finally {
+            setUploadingVideo(false);
+            setUploadingThumbnail(false);
         }
     };
 
@@ -224,11 +301,19 @@ export default function AdminGalleryPage() {
         }
     };
 
-    const handleDeleteVideo = async (id: string) => {
+    const handleDeleteVideo = async (id: string, videoUrl: string) => {
         if (!confirm("Are you sure you want to delete this video?")) return;
 
         try {
             const supabase = createClient();
+
+            // Try to delete from Bunny Stream if it's a Bunny video
+            const videoId = extractVideoIdFromUrl(videoUrl);
+            if (videoId) {
+                await deleteFromBunnyStream(videoId);
+            }
+
+            // Delete from database
             const { error } = await supabase
                 .from("video_gallery")
                 .delete()
@@ -457,14 +542,14 @@ export default function AdminGalleryPage() {
                 <>
                     {/* Video Form */}
                     <div className="bg-white rounded-xl shadow-sm p-6 mb-8">
-                        <h2 className="text-xl font-semibold mb-4">Add New Video (Bunny CDN)</h2>
+                        <h2 className="text-xl font-semibold mb-4">Add New Video</h2>
                         <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
                             <p className="text-sm text-blue-800">
-                                <strong>Instructions:</strong> Upload your video to Bunny CDN, then paste the video URL and thumbnail URL here.
+                                <strong>Two Options:</strong>
                                 <br />
-                                <a href="https://bunny.net" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                                    Go to Bunny.net →
-                                </a>
+                                1. <strong>Upload from Computer:</strong> Select video and thumbnail files below
+                                <br />
+                                2. <strong>Use Bunny CDN:</strong> Paste video URL and thumbnail URL (for faster loading)
                             </p>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
@@ -496,30 +581,141 @@ export default function AdminGalleryPage() {
                                     ))}
                                 </select>
                             </div>
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Video URL (Bunny CDN) *
-                                </label>
-                                <input
-                                    type="url"
-                                    value={videoFormData.video_url}
-                                    onChange={(e) => setVideoFormData({ ...videoFormData, video_url: e.target.value })}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                    placeholder="https://your-bunny-cdn-url.com/video.mp4"
-                                />
+                        </div>
+
+                        {/* Option 1: Upload from Computer */}
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 mb-6">
+                            <h3 className="font-semibold text-gray-900 mb-2">Option 1: Upload from Computer to Bunny Stream</h3>
+                            <p className="text-sm text-gray-600 mb-4">
+                                Videos upload to the same Bunny Stream library as your course videos (Library ID: {process.env.NEXT_PUBLIC_BUNNY_LIBRARY_ID})
+                            </p>
+                            {!bunnyConfigured && (
+                                <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4">
+                                    <p className="text-sm text-amber-800">
+                                        ⚠️ <strong>Bunny Stream not configured.</strong> Please check your .env.local file.
+                                    </p>
+                                </div>
+                            )}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Video File (Max 500MB)
+                                    </label>
+                                    <label className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition ${bunnyConfigured
+                                        ? "bg-primary-600 text-white hover:bg-primary-700 cursor-pointer"
+                                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                        }`}>
+                                        <Upload size={20} />
+                                        {uploadingVideo ? `Uploading... ${uploadProgress}%` : videoFile ? videoFile.name : "Choose Video"}
+                                        <input
+                                            type="file"
+                                            accept="video/mp4,video/webm,video/ogg,video/quicktime"
+                                            onChange={(e) => setVideoFile(e.target.files?.[0] || null)}
+                                            disabled={uploadingVideo || !bunnyConfigured}
+                                            className="hidden"
+                                        />
+                                    </label>
+                                    {videoFile && (
+                                        <p className="text-xs text-gray-500 mt-2">
+                                            Size: {(videoFile.size / (1024 * 1024)).toFixed(2)} MB
+                                        </p>
+                                    )}
+                                    {uploadingVideo && (
+                                        <div className="mt-2">
+                                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                                <div
+                                                    className="bg-primary-600 h-2 rounded-full transition-all duration-300"
+                                                    style={{ width: `${uploadProgress}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Thumbnail Image (Optional)
+                                    </label>
+                                    <label className={`flex items-center justify-center gap-2 px-4 py-3 rounded-lg transition ${bunnyConfigured
+                                        ? "bg-gray-600 text-white hover:bg-gray-700 cursor-pointer"
+                                        : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                                        }`}>
+                                        <Upload size={20} />
+                                        {uploadingThumbnail ? `Uploading... ${thumbnailProgress}%` : thumbnailFile ? thumbnailFile.name : "Choose Thumbnail"}
+                                        <input
+                                            type="file"
+                                            accept="image/*"
+                                            onChange={(e) => setThumbnailFile(e.target.files?.[0] || null)}
+                                            disabled={uploadingThumbnail || !bunnyConfigured}
+                                            className="hidden"
+                                        />
+                                    </label>
+                                    {thumbnailFile && (
+                                        <p className="text-xs text-gray-500 mt-2">
+                                            Size: {(thumbnailFile.size / 1024).toFixed(2)} KB
+                                        </p>
+                                    )}
+                                    {uploadingThumbnail && (
+                                        <div className="mt-2">
+                                            <div className="w-full bg-gray-200 rounded-full h-2">
+                                                <div
+                                                    className="bg-gray-600 h-2 rounded-full transition-all duration-300"
+                                                    style={{ width: `${thumbnailProgress}%` }}
+                                                ></div>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
-                            <div className="md:col-span-2">
-                                <label className="block text-sm font-medium text-gray-700 mb-2">
-                                    Thumbnail URL (Optional)
-                                </label>
-                                <input
-                                    type="url"
-                                    value={videoFormData.thumbnail_url}
-                                    onChange={(e) => setVideoFormData({ ...videoFormData, thumbnail_url: e.target.value })}
-                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                                    placeholder="https://your-bunny-cdn-url.com/thumbnail.jpg"
-                                />
+                        </div>
+
+                        {/* Option 2: Bunny Stream URLs */}
+                        <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 mb-6">
+                            <h3 className="font-semibold text-gray-900 mb-4">Option 2: Use Existing Bunny Stream Video</h3>
+                            <p className="text-sm text-gray-600 mb-4">
+                                If you already uploaded a video to Bunny Stream, paste the video URL here
+                            </p>
+                            <div className="grid grid-cols-1 gap-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Video URL (Bunny Stream)
+                                    </label>
+                                    <input
+                                        type="url"
+                                        value={videoFormData.video_url}
+                                        onChange={(e) => setVideoFormData({ ...videoFormData, video_url: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                        placeholder="https://vz-xxx.b-cdn.net/{videoId}/playlist.m3u8"
+                                        disabled={!!videoFile}
+                                    />
+                                    {videoFile && (
+                                        <p className="text-xs text-amber-600 mt-1">
+                                            Video file selected - URL will be ignored
+                                        </p>
+                                    )}
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                                        Thumbnail URL (Optional)
+                                    </label>
+                                    <input
+                                        type="url"
+                                        value={videoFormData.thumbnail_url}
+                                        onChange={(e) => setVideoFormData({ ...videoFormData, thumbnail_url: e.target.value })}
+                                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-transparent"
+                                        placeholder="https://your-bunny-cdn-url.com/thumbnail.jpg"
+                                        disabled={!!thumbnailFile}
+                                    />
+                                    {thumbnailFile && (
+                                        <p className="text-xs text-amber-600 mt-1">
+                                            Thumbnail file selected - URL will be ignored
+                                        </p>
+                                    )}
+                                </div>
                             </div>
+                        </div>
+
+                        {/* Additional Fields */}
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-2">
                                     Description
@@ -547,9 +743,10 @@ export default function AdminGalleryPage() {
                         </div>
                         <button
                             onClick={handleVideoSubmit}
-                            className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition font-medium"
+                            disabled={uploadingVideo || uploadingThumbnail}
+                            className="px-6 py-3 bg-primary-600 text-white rounded-lg hover:bg-primary-700 transition font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
                         >
-                            Add Video
+                            {uploadingVideo || uploadingThumbnail ? "Uploading..." : "Add Video"}
                         </button>
                     </div>
 
@@ -613,7 +810,7 @@ export default function AdminGalleryPage() {
                                                     {video.is_active ? <Eye size={16} /> : <EyeOff size={16} />}
                                                 </button>
                                                 <button
-                                                    onClick={() => handleDeleteVideo(video.id)}
+                                                    onClick={() => handleDeleteVideo(video.id, video.video_url)}
                                                     className="flex-1 px-3 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition text-sm font-medium"
                                                 >
                                                     <Trash2 size={16} className="mx-auto" />

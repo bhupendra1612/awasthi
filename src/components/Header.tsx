@@ -8,15 +8,15 @@ import { Menu, X, Phone, ChevronDown, BookOpen, Users, Star, GraduationCap, Awar
 const navLinks = [
     {
         name: "Courses",
-        href: "#courses",
+        href: "/browse-courses",
         icon: BookOpen,
         hasDropdown: true,
         dropdownItems: [
-            { name: "REET", href: "#courses", icon: GraduationCap },
-            { name: "Patwari", href: "#courses", icon: FileText },
-            { name: "SSC / LDC", href: "#courses", icon: Award },
-            { name: "Rajasthan Police", href: "#courses", icon: Shield },
-            { name: "Railway", href: "#courses", icon: Train },
+            { name: "REET", href: "/browse-courses", icon: GraduationCap },
+            { name: "Patwari", href: "/browse-courses", icon: FileText },
+            { name: "SSC / LDC", href: "/browse-courses", icon: Award },
+            { name: "Rajasthan Police", href: "/browse-courses", icon: Shield },
+            { name: "Railway", href: "/browse-courses", icon: Train },
         ]
     },
     { name: "Test Series", href: "/tests", icon: ClipboardList },

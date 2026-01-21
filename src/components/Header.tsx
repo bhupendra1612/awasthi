@@ -12,6 +12,7 @@ const navLinks = [
         icon: BookOpen,
         hasDropdown: true,
         dropdownItems: [
+            { name: "All Courses", href: "/browse-courses", icon: BookOpen },
             { name: "REET", href: "/browse-courses", icon: GraduationCap },
             { name: "Patwari", href: "/browse-courses", icon: FileText },
             { name: "SSC / LDC", href: "/browse-courses", icon: Award },
@@ -19,11 +20,20 @@ const navLinks = [
             { name: "Railway", href: "/browse-courses", icon: Train },
         ]
     },
-    { name: "Test Series", href: "/tests", icon: ClipboardList },
-    { name: "Why Us", href: "#features", icon: Star },
+    {
+        name: "Test Series",
+        href: "/browse-tests",
+        icon: ClipboardList,
+        hasDropdown: true,
+        dropdownItems: [
+            { name: "Daily Tests", href: "/browse-tests", icon: ClipboardList },
+            { name: "Practice Tests", href: "/browse-tests", icon: FileText },
+        ]
+    },
+    { name: "Why Us", href: "/#features", icon: Star },
     { name: "Gallery", href: "/gallery", icon: Star },
-    { name: "Reviews", href: "#testimonials", icon: Users },
-    { name: "Contact", href: "#contact", icon: Phone },
+    { name: "Blogs", href: "/blogs", icon: FileText },
+    { name: "Contact", href: "/#contact", icon: Phone },
 ];
 
 export default function Header() {

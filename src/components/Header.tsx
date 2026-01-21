@@ -21,7 +21,7 @@ const navLinks = [
     },
     { name: "Test Series", href: "/tests", icon: ClipboardList },
     { name: "Why Us", href: "#features", icon: Star },
-    { name: "Teachers", href: "#teachers", icon: GraduationCap },
+    { name: "Gallery", href: "/gallery", icon: Star },
     { name: "Reviews", href: "#testimonials", icon: Users },
     { name: "Contact", href: "#contact", icon: Phone },
 ];

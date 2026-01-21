@@ -23,7 +23,16 @@ const nextConfig: NextConfig = {
                 protocol: "https",
                 hostname: "pwgeyamdfnaeknlovvqs.supabase.co",
             },
+            {
+                protocol: "https",
+                hostname: "*.b-cdn.net", // Bunny CDN
+            },
+            {
+                protocol: "https",
+                hostname: "*.bunnycdn.com", // Bunny CDN alternative
+            },
         ],
+        unoptimized: false,
     },
     // Increase body size limit for video uploads
     experimental: {

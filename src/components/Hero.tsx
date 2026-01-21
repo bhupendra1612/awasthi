@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import { Play, Users, Award, CheckCircle, ArrowRight, Sparkles, TrendingUp, GraduationCap, FileText, Shield } from "lucide-react";
 
 export default function Hero() {
@@ -94,37 +95,37 @@ export default function Hero() {
                         </div>
 
                         {/* Stats Row */}
-                        <div className="mt-10 grid grid-cols-3 gap-4">
-                            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
-                                        <Users className="text-white" size={22} />
+                        <div className="mt-10 grid grid-cols-3 gap-2 sm:gap-4">
+                            <div className="bg-white rounded-xl sm:rounded-2xl p-2 sm:p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                                <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-3">
+                                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-blue-500 to-cyan-500 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-blue-500/30">
+                                        <Users className="text-white" size={18} />
                                     </div>
-                                    <div>
-                                        <p className="text-2xl font-bold text-gray-900">1000+</p>
-                                        <p className="text-sm text-gray-500">Students</p>
-                                    </div>
-                                </div>
-                            </div>
-                            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-xl flex items-center justify-center shadow-lg shadow-green-500/30">
-                                        <TrendingUp className="text-white" size={22} />
-                                    </div>
-                                    <div>
-                                        <p className="text-2xl font-bold text-gray-900">90%+</p>
-                                        <p className="text-sm text-gray-500">Success</p>
+                                    <div className="text-center sm:text-left">
+                                        <p className="text-lg sm:text-2xl font-bold text-gray-900">1000+</p>
+                                        <p className="text-xs sm:text-sm text-gray-500">Students</p>
                                     </div>
                                 </div>
                             </div>
-                            <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/30">
-                                        <Award className="text-white" size={22} />
+                            <div className="bg-white rounded-xl sm:rounded-2xl p-2 sm:p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                                <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-3">
+                                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-green-500/30">
+                                        <TrendingUp className="text-white" size={18} />
                                     </div>
-                                    <div>
-                                        <p className="text-2xl font-bold text-gray-900">5+</p>
-                                        <p className="text-sm text-gray-500">Years</p>
+                                    <div className="text-center sm:text-left">
+                                        <p className="text-lg sm:text-2xl font-bold text-gray-900">90%+</p>
+                                        <p className="text-xs sm:text-sm text-gray-500">Success</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="bg-white rounded-xl sm:rounded-2xl p-2 sm:p-4 shadow-sm border border-gray-100 hover:shadow-md transition-shadow">
+                                <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-3">
+                                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg sm:rounded-xl flex items-center justify-center shadow-lg shadow-purple-500/30">
+                                        <Award className="text-white" size={18} />
+                                    </div>
+                                    <div className="text-center sm:text-left">
+                                        <p className="text-lg sm:text-2xl font-bold text-gray-900">10+</p>
+                                        <p className="text-xs sm:text-sm text-gray-500">Years</p>
                                     </div>
                                 </div>
                             </div>
@@ -193,12 +194,15 @@ export default function Hero() {
                                 </div>
                             </div>
 
-                            {/* Center Badge */}
-                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-gradient-to-r from-primary-600 to-blue-600 text-white rounded-full w-20 h-20 flex items-center justify-center shadow-xl animate-pulse">
-                                <div className="text-center">
-                                    <p className="text-xl font-bold">A</p>
-                                    <p className="text-[8px]">Classes</p>
-                                </div>
+                            {/* Center Badge - Logo */}
+                            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-white rounded-full w-20 h-20 flex items-center justify-center shadow-xl animate-pulse overflow-hidden border-4 border-primary-100">
+                                <Image
+                                    src="/images/logo.png"
+                                    alt="Awasthi Classes"
+                                    width={72}
+                                    height={72}
+                                    className="w-full h-full object-cover"
+                                />
                             </div>
                         </div>
                     </div>

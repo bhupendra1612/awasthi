@@ -3,7 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import Image from "next/image";
 import LogoutButton from "@/components/LogoutButton";
-import { LayoutDashboard, BookOpen, Users, FileVideo, Settings, CreditCard, FileText, UserCheck, ClipboardCheck, UserCircle, ClipboardList, Sparkles } from "lucide-react";
+import { LayoutDashboard, BookOpen, Users, FileVideo, Settings, CreditCard, FileText, UserCheck, ClipboardCheck, UserCircle, ClipboardList, Sparkles, Image as ImageIcon } from "lucide-react";
 
 // Admin emails that should always have access
 const ADMIN_EMAILS = ["thedeeptrading24@gmail.com"];
@@ -54,6 +54,7 @@ export default async function AdminLayout({
         { href: "/admin/teachers", icon: UserCheck, label: "Teachers" },
         { href: "/admin/homepage-teachers", icon: UserCircle, label: "Homepage Teachers" },
         { href: "/admin/blogs", icon: FileText, label: "Blogs" },
+        { href: "/admin/gallery", icon: ImageIcon, label: "Gallery" },
         { href: "/admin/enrollments", icon: CreditCard, label: "Enrollments" },
         { href: "/admin/students", icon: Users, label: "Students" },
         { href: "/admin/content", icon: FileVideo, label: "Content" },

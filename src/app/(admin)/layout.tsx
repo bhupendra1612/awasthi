@@ -63,8 +63,8 @@ export default async function AdminLayout({
     return (
         <div className="min-h-screen bg-gray-100">
             {/* Sidebar */}
-            <aside className="fixed left-0 top-0 h-full w-64 bg-gray-900 text-white">
-                <div className="p-6">
+            <aside className="fixed left-0 top-0 h-full w-64 bg-gray-900 text-white flex flex-col">
+                <div className="p-6 flex-shrink-0">
                     <Link href="/admin" className="flex items-center gap-2">
                         <div className="w-10 h-10 relative">
                             <Image
@@ -80,7 +80,7 @@ export default async function AdminLayout({
                         </div>
                     </Link>
                 </div>
-                <nav className="mt-6">
+                <nav className="mt-6 flex-1 overflow-y-auto pb-24">
                     {navItems.map((item) => (
                         <Link
                             key={item.href}
@@ -92,11 +92,11 @@ export default async function AdminLayout({
                         </Link>
                     ))}
                 </nav>
-                <div className="absolute bottom-0 left-0 right-0 p-6 border-t border-gray-800">
-                    <div className="flex items-center justify-between">
-                        <div className="text-sm">
-                            <p className="text-white font-medium truncate">{user.email}</p>
-                            <p className="text-gray-400 text-xs">Administrator</p>
+                <div className="flex-shrink-0 p-4 border-t border-gray-800 bg-gray-900">
+                    <div className="flex items-center justify-between gap-2">
+                        <div className="flex-1 min-w-0">
+                            <p className="text-white font-medium text-sm">Admin</p>
+                            <p className="text-gray-400 text-xs truncate">{user.email}</p>
                         </div>
                         <LogoutButton />
                     </div>

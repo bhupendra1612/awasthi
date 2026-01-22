@@ -47,6 +47,7 @@ export default function TestDetailPage() {
     const [test, setTest] = useState<Test | null>(null);
     const [enrollment, setEnrollment] = useState<Enrollment | null>(null);
     const [loading, setLoading] = useState(true);
+    const [enrolling, setEnrolling] = useState(false);
 
     useEffect(() => {
         if (testId) {
@@ -85,6 +86,9 @@ export default function TestDetailPage() {
     };
 
     const handleEnroll = async () => {
+        if (enrolling) return;
+        setEnrolling(true);
+
         try {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
@@ -94,7 +98,7 @@ export default function TestDetailPage() {
 
             if (test?.is_free) {
                 // Free enrollment
-                const { error } = await supabase
+                const { data, error } = await supabase
                     .from("test_enrollments")
                     .insert({
                         user_id: user.id,
@@ -102,17 +106,28 @@ export default function TestDetailPage() {
                         payment_status: "free",
                         attempts_allowed: 3,
                         attempts_used: 0
-                    });
+                    })
+                    .select()
+                    .single();
 
-                if (!error) {
-                    fetchTestDetails(); // Refresh data
+                if (error) {
+                    console.error("Enrollment error:", error);
+                    alert(`Failed to enroll: ${error.message}`);
+                    return;
                 }
+
+                console.log("Enrollment successful:", data);
+                alert("✅ Successfully enrolled in test!");
+                await fetchTestDetails(); // Refresh data
             } else {
                 // Redirect to payment (implement payment logic here)
                 alert("Payment integration needed for paid tests");
             }
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error enrolling:", error);
+            alert(`Error: ${error.message || 'Failed to enroll'}`);
+        } finally {
+            setEnrolling(false);
         }
     };
 
@@ -266,9 +281,10 @@ export default function TestDetailPage() {
                             ) : (
                                 <button
                                     onClick={handleEnroll}
-                                    className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-primary-700 transition"
+                                    disabled={enrolling}
+                                    className="w-full bg-primary-600 text-white py-3 px-4 rounded-lg font-medium hover:bg-primary-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    {test.is_free ? "Enroll Free" : "Enroll Now"}
+                                    {enrolling ? "Enrolling..." : test.is_free ? "Enroll Free" : "Enroll Now"}
                                 </button>
                             )}
                         </div>

@@ -19,7 +19,7 @@ interface Question {
     option_b: string;
     option_c: string;
     option_d: string;
-    correct_answer: string;
+    correct_option: string;
     marks: number;
     negative_marks: number;
     order_index: number;
@@ -179,7 +179,7 @@ export default function TestStartPage() {
                 const answer = answers.get(question.id);
                 answerData[question.id] = answer?.selectedOption || "";
 
-                if (answer?.selectedOption === question.correct_answer) {
+                if (answer?.selectedOption === question.correct_option) {
                     score += question.marks;
                 } else if (answer?.selectedOption && test?.negative_marks) {
                     score -= question.negative_marks;
@@ -190,21 +190,30 @@ export default function TestStartPage() {
             const timeTaken = (test!.duration_minutes * 60) - timeLeft;
 
             // Save attempt
-            const { error } = await supabase
+            const attemptData = {
+                user_id: user.id,
+                test_id: testId,
+                score,
+                total_questions: questions.length,
+                time_taken: timeTaken,
+                answers: answerData
+            };
+
+            console.log("Saving attempt:", attemptData);
+
+            const { data: attemptResult, error } = await supabase
                 .from("test_attempts")
-                .insert({
-                    user_id: user.id,
-                    test_id: testId,
-                    score,
-                    total_questions: questions.length,
-                    time_taken: timeTaken,
-                    answers: answerData
-                });
+                .insert(attemptData)
+                .select()
+                .single();
 
             if (error) {
                 console.error("Error saving attempt:", error);
+                alert(`Failed to save test: ${error.message || 'Unknown error'}`);
                 return;
             }
+
+            console.log("Attempt saved successfully:", attemptResult);
 
             // Update enrollment attempts
             const { data: currentEnrollment } = await supabase

@@ -56,11 +56,18 @@ interface Enrollment {
     attempts_allowed: number;
 }
 
+interface TestAttempt {
+    test_id: string;
+    score: number;
+    created_at: string;
+}
+
 export default function TestsPage() {
     const supabase = createClient();
     const [tests, setTests] = useState<Test[]>([]);
     const [dailyTests, setDailyTests] = useState<DailyTest[]>([]);
     const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+    const [testAttempts, setTestAttempts] = useState<TestAttempt[]>([]);
     const [dailyAttempts, setDailyAttempts] = useState<DailyTestAttempt[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
@@ -113,6 +120,14 @@ export default function TestsPage() {
 
                 setEnrollments(enrollmentsData || []);
 
+                // Fetch user's test attempts
+                const { data: testAttemptsData } = await supabase
+                    .from("test_attempts")
+                    .select("test_id, score, created_at")
+                    .eq("user_id", user.id);
+
+                setTestAttempts(testAttemptsData || []);
+
                 // Fetch user's daily test attempts
                 const { data: dailyAttemptsData } = await supabase
                     .from("daily_test_attempts")
@@ -163,6 +178,10 @@ export default function TestsPage() {
     const getDailyTestScore = (testId: string) => {
         const attempt = dailyAttempts.find(attempt => attempt.daily_test_id === testId);
         return attempt?.score;
+    };
+
+    const hasTestAttempt = (testId: string) => {
+        return testAttempts.some(attempt => attempt.test_id === testId);
     };
 
     const categoryColors: Record<string, string> = {
@@ -376,6 +395,7 @@ export default function TestsPage() {
                                 {filteredTests.map((test) => {
                                     const enrolled = isEnrolled(test.id);
                                     const enrollment = getEnrollment(test.id);
+                                    const hasAttempt = hasTestAttempt(test.id);
                                     const canAttempt = enrolled && (enrollment?.attempts_used || 0) < (enrollment?.attempts_allowed || 1);
 
                                     return (
@@ -456,19 +476,19 @@ export default function TestsPage() {
                                                     </div>
 
                                                     {enrolled ? (
-                                                        canAttempt ? (
-                                                            <Link
-                                                                href={`/tests/${test.id}/start`}
-                                                                className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition"
-                                                            >
-                                                                Start Test
-                                                            </Link>
-                                                        ) : (
+                                                        hasAttempt ? (
                                                             <Link
                                                                 href={`/tests/${test.id}/result`}
                                                                 className="bg-gray-100 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium hover:bg-gray-200 transition"
                                                             >
                                                                 View Result
+                                                            </Link>
+                                                        ) : (
+                                                            <Link
+                                                                href={`/tests/${test.id}/start`}
+                                                                className="bg-green-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-green-700 transition"
+                                                            >
+                                                                Start Test
                                                             </Link>
                                                         )
                                                     ) : (

@@ -21,7 +21,7 @@ interface TestAttempt {
     score: number;
     total_questions: number;
     time_taken: number;
-    completed_at: string;
+    created_at: string;
     answers: Record<string, string>;
 }
 
@@ -42,7 +42,7 @@ interface Question {
     option_b: string;
     option_c: string;
     option_d: string;
-    correct_answer: string;
+    correct_option: string;
     explanation?: string;
     marks: number;
     order_index: number;
@@ -94,16 +94,20 @@ export default function TestResultPage() {
             setTest(testData);
 
             // Fetch latest attempt
-            const { data: attemptData } = await supabase
+            const { data: attemptData, error: attemptError } = await supabase
                 .from("test_attempts")
                 .select("*")
                 .eq("user_id", user.id)
                 .eq("test_id", testId)
-                .order("completed_at", { ascending: false })
+                .order("created_at", { ascending: false })
                 .limit(1)
                 .single();
 
+            console.log("Attempt data:", attemptData);
+            console.log("Attempt error:", attemptError);
+
             if (!attemptData) {
+                console.log("No attempt found, redirecting to test page");
                 router.push(`/tests/${testId}`);
                 return;
             }
@@ -193,8 +197,8 @@ export default function TestResultPage() {
     }
 
     const percentage = Math.round((attempt.score / test.total_marks) * 100);
-    const correctAnswers = questions.filter(q => attempt.answers[q.id] === q.correct_answer).length;
-    const incorrectAnswers = questions.filter(q => attempt.answers[q.id] && attempt.answers[q.id] !== q.correct_answer).length;
+    const correctAnswers = questions.filter(q => attempt.answers[q.id] === q.correct_option).length;
+    const incorrectAnswers = questions.filter(q => attempt.answers[q.id] && attempt.answers[q.id] !== q.correct_option).length;
     const unanswered = questions.length - correctAnswers - incorrectAnswers;
     const canRetake = enrollment && enrollment.attempts_used < enrollment.attempts_allowed;
 
@@ -296,7 +300,7 @@ export default function TestResultPage() {
                 <div className="space-y-6">
                     {questions.map((question, index) => {
                         const userAnswer = attempt.answers[question.id];
-                        const isCorrect = userAnswer === question.correct_answer;
+                        const isCorrect = userAnswer === question.correct_option;
                         const isAnswered = !!userAnswer;
 
                         return (
@@ -331,10 +335,10 @@ export default function TestResultPage() {
                                         <div
                                             key={option.key}
                                             className={`p-3 rounded-lg border ${option.key === question.correct_answer
-                                                    ? 'bg-green-100 border-green-300 text-green-800'
-                                                    : option.key === userAnswer && userAnswer !== question.correct_answer
-                                                        ? 'bg-red-100 border-red-300 text-red-800'
-                                                        : 'bg-gray-50 border-gray-200'
+                                                ? 'bg-green-100 border-green-300 text-green-800'
+                                                : option.key === userAnswer && userAnswer !== question.correct_answer
+                                                    ? 'bg-red-100 border-red-300 text-red-800'
+                                                    : 'bg-gray-50 border-gray-200'
                                                 }`}
                                         >
                                             <span className="font-medium">{option.key}.</span> {option.value}
@@ -365,7 +369,7 @@ export default function TestResultPage() {
                 <div className="mt-6 bg-gray-50 rounded-lg p-4">
                     <p className="text-sm text-gray-600">
                         Attempt {enrollment.attempts_used} of {enrollment.attempts_allowed} •
-                        Completed on {new Date(attempt.completed_at).toLocaleDateString("en-IN", {
+                        Completed on {new Date(attempt.created_at).toLocaleDateString("en-IN", {
                             day: 'numeric',
                             month: 'long',
                             year: 'numeric',

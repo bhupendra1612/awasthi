@@ -29,7 +29,7 @@ interface Test {
     total_questions: number;
 }
 
-export default function AdminManageQuestionsPage() {
+export default function TeacherManageQuestionsPage() {
     const router = useRouter();
     const params = useParams();
     const testId = params.id as string;
@@ -251,7 +251,7 @@ export default function AdminManageQuestionsPage() {
             {/* Header */}
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
-                    <Link href="/admin/tests" className="p-2 hover:bg-gray-100 rounded-lg">
+                    <Link href="/teacher/tests" className="p-2 hover:bg-gray-100 rounded-lg">
                         <ArrowLeft size={20} />
                     </Link>
                     <div>
@@ -283,8 +283,8 @@ export default function AdminManageQuestionsPage() {
             </div>
 
             {/* Stats */}
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p className="text-sm text-blue-800">
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <p className="text-sm text-purple-800">
                     <strong>Total Questions:</strong> {questions.length} |
                     <strong className="ml-3">Total Marks:</strong> {questions.reduce((sum, q) => sum + q.marks, 0)}
                 </p>

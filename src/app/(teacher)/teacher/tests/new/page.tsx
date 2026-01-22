@@ -22,7 +22,7 @@ interface Question {
     topic?: string;
 }
 
-export default function NewTestPage() {
+export default function TeacherNewTestPage() {
     const router = useRouter();
     const supabase = createClient();
     const [saving, setSaving] = useState(false);
@@ -71,7 +71,7 @@ export default function NewTestPage() {
             // Calculate total marks
             const totalMarks = questions.reduce((sum, q) => sum + q.marks, 0);
 
-            // Create test
+            // Create test - teachers can publish directly
             const { data: test, error: testError } = await supabase
                 .from("tests")
                 .insert({
@@ -79,7 +79,7 @@ export default function NewTestPage() {
                     total_questions: questions.length,
                     total_marks: totalMarks,
                     created_by: user.id,
-                    is_published: false
+                    is_published: false // Start as draft, teacher can publish later
                 })
                 .select()
                 .single();
@@ -110,7 +110,7 @@ export default function NewTestPage() {
             if (questionsError) throw questionsError;
 
             alert("✅ Test created successfully!");
-            router.push("/admin/tests");
+            router.push("/teacher/tests");
 
         } catch (error: any) {
             console.error("Save error:", error);
@@ -126,7 +126,7 @@ export default function NewTestPage() {
             <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                     <Link
-                        href="/admin/tests"
+                        href="/teacher/tests"
                         className="p-2 hover:bg-gray-100 rounded-lg transition"
                     >
                         <ArrowLeft size={20} />
@@ -153,6 +153,14 @@ export default function NewTestPage() {
                         </>
                     )}
                 </button>
+            </div>
+
+            {/* Info Banner for Teachers */}
+            <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                <p className="text-sm text-purple-800">
+                    <strong>Teacher Power:</strong> You can create tests and publish them directly without admin approval.
+                    Use AI to generate questions quickly or add them manually for full control.
+                </p>
             </div>
 
             {/* Basic Info */}

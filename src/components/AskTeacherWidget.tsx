@@ -181,9 +181,9 @@ export default function AskTeacherWidget() {
 
             {/* Chat Window */}
             {isOpen && (
-                <div className="fixed bottom-6 right-6 w-96 h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col z-50 border border-gray-200">
+                <div className="fixed inset-0 sm:inset-auto sm:bottom-6 sm:right-6 sm:w-96 sm:h-[600px] w-full h-full bg-white sm:rounded-2xl shadow-2xl flex flex-col z-50 sm:border border-gray-200">
                     {/* Header */}
-                    <div className="bg-gradient-to-r from-primary-600 to-blue-600 text-white p-4 rounded-t-2xl flex items-center justify-between">
+                    <div className="bg-gradient-to-r from-primary-600 to-blue-600 text-white p-4 sm:rounded-t-2xl flex items-center justify-between flex-shrink-0">
                         <div className="flex items-center gap-3">
                             <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
                                 <User size={20} />
@@ -275,7 +275,7 @@ export default function AskTeacherWidget() {
                     </div>
 
                     {/* Input Area */}
-                    <form onSubmit={handleSubmit} className="p-4 border-t border-gray-200 bg-white rounded-b-2xl">
+                    <form onSubmit={handleSubmit} className="p-3 sm:p-4 border-t border-gray-200 bg-white sm:rounded-b-2xl flex-shrink-0">
                         {imagePreview && (
                             <div className="mb-2 relative inline-block">
                                 <img src={imagePreview} alt="Preview" className="h-20 rounded-lg" />
@@ -291,7 +291,7 @@ export default function AskTeacherWidget() {
                                 </button>
                             </div>
                         )}
-                        <div className="flex items-center gap-2">
+                        <div className="flex items-end gap-2">
                             <input
                                 type="file"
                                 ref={fileInputRef}
@@ -302,10 +302,10 @@ export default function AskTeacherWidget() {
                             <button
                                 type="button"
                                 onClick={() => fileInputRef.current?.click()}
-                                className="w-10 h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition flex-shrink-0"
+                                className="w-9 h-9 sm:w-10 sm:h-10 bg-gray-100 hover:bg-gray-200 rounded-full flex items-center justify-center transition flex-shrink-0"
                                 disabled={isLoading}
                             >
-                                <ImageIcon size={20} className="text-gray-600" />
+                                <ImageIcon size={18} className="text-gray-600" />
                             </button>
                             <textarea
                                 value={inputText}
@@ -316,8 +316,8 @@ export default function AskTeacherWidget() {
                                         handleSubmit(e);
                                     }
                                 }}
-                                placeholder="Type your question... (Shift+Enter for new line)"
-                                className="flex-1 px-4 py-2 border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none max-h-32 min-h-[40px]"
+                                placeholder="Type your question..."
+                                className="flex-1 px-3 py-2 sm:px-4 text-sm sm:text-base border border-gray-300 rounded-2xl focus:outline-none focus:ring-2 focus:ring-primary-500 resize-none max-h-32 min-h-[40px]"
                                 rows={1}
                                 style={{
                                     height: 'auto',
@@ -333,9 +333,9 @@ export default function AskTeacherWidget() {
                             <button
                                 type="submit"
                                 disabled={isLoading || (!inputText.trim() && !selectedImage)}
-                                className="w-10 h-10 bg-primary-600 hover:bg-primary-700 text-white rounded-full flex items-center justify-center transition disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
+                                className="w-9 h-9 sm:w-10 sm:h-10 bg-primary-600 hover:bg-primary-700 text-white rounded-full flex items-center justify-center transition disabled:opacity-50 disabled:cursor-not-allowed flex-shrink-0"
                             >
-                                <Send size={18} />
+                                <Send size={16} />
                             </button>
                         </div>
                     </form>

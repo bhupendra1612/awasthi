@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
-import Image from "next/image";
 import LogoutButton from "@/components/LogoutButton";
-import { LayoutDashboard, BookOpen, User, GraduationCap, Bell, Home } from "lucide-react";
+import { LayoutDashboard, FileText, BookOpen, Users, Settings, Bell } from "lucide-react";
 
 export default async function TeacherLayout({
     children,
@@ -17,112 +16,62 @@ export default async function TeacherLayout({
         redirect("/login");
     }
 
+    // Check if user is a teacher
     const { data: profile } = await supabase
         .from("profiles")
-        .select("role, full_name, is_active")
+        .select("role, full_name")
         .eq("id", user.id)
         .single();
 
-    if (!profile) {
-        redirect("/login");
-    }
+    const isTeacher = profile?.role === "teacher";
+    const isAdmin = profile?.role === "admin";
 
-    // Redirect based on role
-    if (profile.role === "admin") {
-        redirect("/admin");
-    }
-
-    if (profile.role !== "teacher") {
+    if (!isTeacher && !isAdmin) {
         redirect("/dashboard");
     }
 
-    if (!profile.is_active) {
-        redirect("/login?error=account_disabled");
-    }
+    const userName = profile?.full_name || user.user_metadata?.full_name || user.email?.split("@")[0] || "Teacher";
+    const userInitial = userName.charAt(0).toUpperCase();
 
     const navItems = [
-        { href: "/teacher", icon: LayoutDashboard, label: "Dashboard", color: "from-blue-500 to-cyan-500" },
-        { href: "/teacher/courses", icon: BookOpen, label: "My Courses", color: "from-purple-500 to-pink-500" },
-        { href: "/teacher/profile", icon: User, label: "Profile", color: "from-green-500 to-emerald-500" },
+        { href: "/teacher", icon: LayoutDashboard, label: "Dashboard" },
+        { href: "/teacher/tests", icon: FileText, label: "Test Series" },
+        { href: "/teacher/courses", icon: BookOpen, label: "My Courses" },
+        { href: "/teacher/students", icon: Users, label: "Students" },
     ];
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-gray-100">
             {/* Sidebar */}
-            <aside className="fixed left-0 top-0 h-full w-64 bg-gradient-to-b from-primary-900 via-primary-800 to-blue-900 text-white shadow-xl z-20">
-                {/* Logo */}
-                <div className="p-5 border-b border-white/10">
-                    <Link href="/teacher" className="flex items-center gap-3">
-                        <div className="w-12 h-12 relative rounded-xl overflow-hidden bg-white shadow-lg">
-                            <Image
-                                src="/images/logo.png"
-                                alt="Awasthi Classes Logo"
-                                fill
-                                className="object-cover"
-                            />
+            <aside className="fixed left-0 top-0 h-full w-64 bg-gray-900 text-white flex flex-col">
+                <div className="p-6 flex-shrink-0">
+                    <Link href="/teacher" className="flex items-center gap-2">
+                        <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-pink-600 rounded-xl flex items-center justify-center shadow-lg">
+                            <span className="text-xl font-bold text-white">A</span>
                         </div>
                         <div>
-                            <span className="font-bold text-lg">Awasthi Classes</span>
-                            <p className="text-xs text-primary-200">Teacher Panel</p>
+                            <span className="font-bold">Awasthi Classes</span>
+                            <p className="text-xs text-gray-400">Teacher Panel</p>
                         </div>
                     </Link>
                 </div>
-
-                {/* Navigation */}
-                <nav className="mt-6 px-3">
-                    <p className="px-3 text-xs font-semibold text-primary-300 uppercase tracking-wider mb-3">Menu</p>
+                <nav className="mt-6 flex-1 overflow-y-auto pb-24">
                     {navItems.map((item) => (
                         <Link
                             key={item.href}
                             href={item.href}
-                            className="flex items-center gap-3 px-4 py-3 text-primary-100 hover:bg-white/10 hover:text-white rounded-xl transition mb-1 group"
+                            className="flex items-center gap-3 px-6 py-3 text-gray-300 hover:bg-gray-800 hover:text-white transition"
                         >
-                            <div className={`w-9 h-9 bg-gradient-to-br ${item.color} rounded-lg flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
-                                <item.icon size={18} className="text-white" />
-                            </div>
-                            <span className="font-medium">{item.label}</span>
+                            <item.icon size={20} />
+                            {item.label}
                         </Link>
                     ))}
                 </nav>
-
-                {/* Exam Categories */}
-                <div className="mx-4 mt-8 p-4 bg-white/10 rounded-xl backdrop-blur-sm">
-                    <p className="text-xs font-semibold text-primary-200 mb-3 flex items-center gap-2">
-                        <GraduationCap size={14} />
-                        Teaching For
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                        {["SSC", "Railway", "Bank", "RPSC", "RSMSSB", "Police"].map((exam) => (
-                            <span key={exam} className="text-[10px] bg-white/20 px-2 py-1 rounded-full text-white font-medium">
-                                {exam}
-                            </span>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Quick Links */}
-                <div className="mx-4 mt-4">
-                    <Link
-                        href="/"
-                        className="flex items-center gap-2 px-4 py-2.5 text-primary-200 hover:text-white hover:bg-white/10 rounded-lg transition text-sm"
-                    >
-                        <Home size={16} />
-                        View Website
-                    </Link>
-                </div>
-
-                {/* User Info */}
-                <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-white/10 bg-primary-900/50 backdrop-blur-sm">
-                    <div className="flex items-center gap-3">
-                        <div className="w-11 h-11 bg-gradient-to-br from-green-400 to-emerald-500 rounded-xl flex items-center justify-center text-white font-bold shadow-lg text-lg">
-                            {profile.full_name?.charAt(0) || "T"}
-                        </div>
+                <div className="flex-shrink-0 p-4 border-t border-gray-800 bg-gray-900">
+                    <div className="flex items-center justify-between gap-2">
                         <div className="flex-1 min-w-0">
-                            <p className="text-white font-medium truncate">{profile.full_name || "Teacher"}</p>
-                            <p className="text-primary-300 text-xs flex items-center gap-1">
-                                <span className="w-2 h-2 bg-green-400 rounded-full animate-pulse"></span>
-                                Active Teacher
-                            </p>
+                            <p className="text-white font-medium text-sm">Teacher</p>
+                            <p className="text-gray-400 text-xs truncate">{user.email}</p>
                         </div>
                         <LogoutButton />
                     </div>
@@ -131,23 +80,20 @@ export default async function TeacherLayout({
 
             {/* Main Content */}
             <main className="ml-64 min-h-screen">
-                {/* Header */}
-                <header className="bg-white border-b border-gray-200 px-8 py-4 sticky top-0 z-10 shadow-sm">
+                <header className="bg-white border-b border-gray-200 px-8 py-4">
                     <div className="flex justify-between items-center">
-                        <div>
-                            <h1 className="text-xl font-bold text-gray-900">Teacher Dashboard</h1>
-                            <p className="text-sm text-gray-500">Manage your courses & content for government exams</p>
-                        </div>
+                        <h1 className="text-xl font-semibold text-gray-900">Teacher Dashboard</h1>
                         <div className="flex items-center gap-3">
-                            <button className="relative p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-100 rounded-lg transition">
+                            <button className="relative w-10 h-10 flex items-center justify-center text-gray-500 hover:text-primary-600 hover:bg-gray-100 rounded-xl transition">
                                 <Bell size={20} />
-                                <span className="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+                                <span className="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full" />
                             </button>
-                            <div className="h-8 w-px bg-gray-200"></div>
-                            <div className="flex items-center gap-2 text-sm">
-                                <span className="text-gray-500">Welcome,</span>
-                                <span className="font-medium text-gray-900">{profile.full_name?.split(" ")[0] || "Teacher"}</span>
-                            </div>
+                            <Link
+                                href="/"
+                                className="text-sm text-gray-500 hover:text-primary-600 transition"
+                            >
+                                View Website →
+                            </Link>
                         </div>
                     </div>
                 </header>

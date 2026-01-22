@@ -25,12 +25,13 @@ import {
 interface DailyTest {
     id: string;
     title: string;
-    description: string | null;
-    difficulty_level: string;
-    total_questions: number;
+    exam_category: string;
+    subject: string;
+    difficulty: string;
+    questions_count: number;
     duration_minutes: number;
-    is_active: boolean;
-    generated_date: string;
+    status: string;
+    test_date: string;
     type: 'daily';
 }
 
@@ -89,8 +90,8 @@ export default function BrowseTestsPage() {
             const { data: dailyData, error: dailyError } = await supabase
                 .from("generated_daily_tests")
                 .select("*")
-                .eq("is_active", true)
-                .order("generated_date", { ascending: false })
+                .in("status", ["approved", "published"])
+                .order("test_date", { ascending: false })
                 .limit(10);
 
             if (dailyError) console.error("Error fetching daily tests:", dailyError);
@@ -352,8 +353,8 @@ export default function BrowseTestsPage() {
                                                             <Calendar size={12} />
                                                             DAILY TEST
                                                         </span>
-                                                        <h3 className="text-xl font-bold text-white mt-3">{test.title}</h3>
-                                                        <p className="text-white/80 text-sm mt-2 line-clamp-2">{test.description}</p>
+                                                        <h3 className="text-xl font-bold text-white mt-3">{test.subject}</h3>
+                                                        <p className="text-white/80 text-sm mt-2">{test.exam_category} • {test.difficulty}</p>
                                                     </div>
                                                 </div>
 
@@ -361,7 +362,7 @@ export default function BrowseTestsPage() {
                                                     <div className="grid grid-cols-2 gap-3 mb-4">
                                                         <div className="bg-gray-50 rounded-lg p-3 text-center">
                                                             <ClipboardList className="mx-auto text-green-600 mb-1" size={20} />
-                                                            <p className="text-lg font-bold text-gray-900">{test.total_questions}</p>
+                                                            <p className="text-lg font-bold text-gray-900">{test.questions_count}</p>
                                                             <p className="text-xs text-gray-500">Questions</p>
                                                         </div>
                                                         <div className="bg-gray-50 rounded-lg p-3 text-center">
@@ -373,7 +374,7 @@ export default function BrowseTestsPage() {
 
                                                     <div className="flex items-center justify-between mb-4">
                                                         <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">
-                                                            {test.difficulty_level}
+                                                            {test.difficulty}
                                                         </span>
                                                         <span className="text-lg font-bold text-green-600">FREE</span>
                                                     </div>
@@ -540,7 +541,11 @@ function TestModal({ test, onClose }: { test: Test; onClose: () => void }) {
                             {isDailyTest ? 'Daily Test' : 'Practice Test'}
                         </span>
                         <h2 className="text-2xl sm:text-3xl font-bold text-white">{test.title}</h2>
-                        <p className="text-white/80 mt-2">{test.description}</p>
+                        {isDailyTest ? (
+                            <p className="text-white/80 mt-2">{(test as DailyTest).exam_category} • {(test as DailyTest).subject}</p>
+                        ) : (
+                            <p className="text-white/80 mt-2">{(test as PracticeTest).description}</p>
+                        )}
                     </div>
                 </div>
 
@@ -550,7 +555,7 @@ function TestModal({ test, onClose }: { test: Test; onClose: () => void }) {
                             <div className="grid grid-cols-2 gap-4 mb-6">
                                 <div className="bg-gray-50 rounded-xl p-4 text-center">
                                     <ClipboardList className="mx-auto text-green-600 mb-2" size={24} />
-                                    <p className="text-lg font-bold text-gray-900">{(test as DailyTest).total_questions}</p>
+                                    <p className="text-lg font-bold text-gray-900">{(test as DailyTest).questions_count}</p>
                                     <p className="text-sm text-gray-500">Questions</p>
                                 </div>
                                 <div className="bg-gray-50 rounded-xl p-4 text-center">
@@ -563,7 +568,7 @@ function TestModal({ test, onClose }: { test: Test; onClose: () => void }) {
                             <div className="mb-6">
                                 <h4 className="font-bold text-gray-900 mb-3">Test Features:</h4>
                                 <div className="space-y-2">
-                                    {["Daily updated questions", "Instant results", "Performance tracking", "Free to attempt", "Difficulty: " + (test as DailyTest).difficulty_level].map((feature, i) => (
+                                    {["Daily updated questions", "Instant results", "Performance tracking", "Free to attempt", "Difficulty: " + (test as DailyTest).difficulty].map((feature, i) => (
                                         <div key={i} className="flex items-center gap-2 text-gray-600">
                                             <CheckCircle className="text-green-500 flex-shrink-0" size={18} />
                                             <span>{feature}</span>

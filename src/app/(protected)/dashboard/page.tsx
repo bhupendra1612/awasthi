@@ -125,7 +125,7 @@ export default function DashboardPage() {
             const { data: todayTestsData } = await supabase
                 .from("generated_daily_tests")
                 .select("*")
-                .eq("status", "published")
+                .in("status", ["approved", "published"])
                 .eq("test_date", today)
                 .order("exam_category");
 

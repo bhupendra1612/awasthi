@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import Link from "next/link";
 import LogoutButton from "@/components/LogoutButton";
+import AskTeacherWidget from "@/components/AskTeacherWidget";
 import { LayoutDashboard, BookOpen, GraduationCap, Settings, Bell, Search, UserCheck, PenTool } from "lucide-react";
 
 export default async function ProtectedLayout({
@@ -188,6 +189,9 @@ export default async function ProtectedLayout({
 
             {/* Main Content with padding for fixed header */}
             <main className="pt-32 md:pt-16">{children}</main>
+
+            {/* Ask Teacher Floating Widget */}
+            <AskTeacherWidget />
         </div>
     );
 }

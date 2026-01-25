@@ -110,7 +110,7 @@ export default function Courses() {
             // Process data and add default values for missing fields
             const processedData = (data || []).map(course => ({
                 ...course,
-                board: course.board || 'CBSE',
+                board: course.board || 'Government Exams',
                 duration: course.duration || '6 months',
                 is_featured: course.is_featured || false,
                 is_trending: course.is_trending || false
@@ -162,8 +162,8 @@ export default function Courses() {
                         </span>
                     </h2>
                     <p className="mt-4 text-lg text-gray-600 max-w-2xl mx-auto">
-                        Comprehensive courses for Class 6-12 covering CBSE & RBSE syllabus.
-                        Special focus on Mathematics with expert guidance.
+                        Expert coaching for government competitive exams including REET, RPSC, SSC, Railway, and more.
+                        Comprehensive study material with experienced faculty guidance.
                     </p>
                 </div>
 
@@ -251,7 +251,7 @@ export default function Courses() {
                                                 <h3 className="text-lg font-bold text-gray-900 group-hover:text-primary-600 transition line-clamp-1">
                                                     {course.title}
                                                 </h3>
-                                                <p className="text-sm text-gray-500 mt-1">{course.board || 'CBSE'}</p>
+                                                <p className="text-sm text-gray-500 mt-1">{course.board || 'Government Exams'}</p>
 
                                                 {/* Stats */}
                                                 <div className="flex items-center gap-3 mt-3 text-sm text-gray-600">
@@ -495,7 +495,7 @@ function CourseModal({ course, onClose }: { course: Course; onClose: () => void 
                     <div className="mt-6">
                         <h4 className="font-bold text-gray-900 mb-3">What&apos;s Included:</h4>
                         <div className="grid sm:grid-cols-2 gap-2">
-                            {["Complete NCERT Coverage", "Practice Questions", "Doubt Sessions", "PDF Notes", "Video Lectures"].map((feature, i) => (
+                            {["Complete REET Coverage", "Practice Questions", "Doubt Sessions", "PDF Notes", "Video Lectures"].map((feature, i) => (
                                 <div key={i} className="flex items-center gap-2 text-gray-600">
                                     <CheckCircle className="text-green-500 flex-shrink-0" size={18} />
                                     <span>{feature}</span>

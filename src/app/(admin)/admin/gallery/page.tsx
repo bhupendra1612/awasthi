@@ -130,7 +130,7 @@ export default function AdminGalleryPage() {
             const supabase = createClient();
             const fileExt = file.name.split(".").pop();
             const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-            const filePath = `gallery/${fileName}`;
+            const filePath = fileName; // Fixed: removed duplicate "gallery/" prefix
 
             const { error: uploadError } = await supabase.storage
                 .from("gallery")

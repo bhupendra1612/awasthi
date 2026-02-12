@@ -82,10 +82,10 @@ export const metadata: Metadata = {
         canonical: SITE_URL,
     },
 
-    // ───── Verification (add your codes when available) ─────
-    // verification: {
-    //     google: "your-google-verification-code",
-    // },
+    // ───── Verification ─────
+    verification: {
+        google: "wN5pICKlC24xvUNqgal8FSKjgnIpzU9ybs5rLu8zBJk",
+    },
 };
 
 // ───── JSON-LD Structured Data ─────

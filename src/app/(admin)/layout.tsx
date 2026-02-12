@@ -69,7 +69,7 @@ export default async function AdminLayout({
                         <div className="w-10 h-10 relative">
                             <Image
                                 src="/images/logo.png"
-                                alt="Bard of Maths Logo"
+                                alt="Awasthi Classes Logo"
                                 fill
                                 className="object-contain"
                             />

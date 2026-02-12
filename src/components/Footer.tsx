@@ -1,4 +1,5 @@
 import Link from "next/link";
+import Image from "next/image";
 import {
     Facebook,
     Instagram,
@@ -72,8 +73,14 @@ export default function Footer() {
                 {/* Top Section - Logo & Social */}
                 <div className="flex flex-col md:flex-row justify-between items-center pb-12 border-b border-gray-800">
                     <div className="flex items-center gap-3 mb-6 md:mb-0">
-                        <div className="w-14 h-14 bg-gradient-to-br from-primary-600 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
-                            <span className="text-2xl font-bold text-white">A</span>
+                        <div className="w-14 h-14 rounded-xl overflow-hidden shadow-lg flex-shrink-0">
+                            <Image
+                                src="/images/logo.png"
+                                alt="Awasthi Classes Logo"
+                                width={56}
+                                height={56}
+                                className="w-full h-full object-cover"
+                            />
                         </div>
                         <div>
                             <span className="text-2xl font-bold text-white">Awasthi Classes</span>

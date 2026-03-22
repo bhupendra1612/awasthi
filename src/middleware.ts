@@ -2,8 +2,8 @@ import { type NextRequest, NextResponse } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 // ===== MAINTENANCE MODE =====
-// Remove this block to disable maintenance mode
-const MAINTENANCE_MODE = true;
+// Set to true to enable maintenance mode (redirects to /maintenance)
+const MAINTENANCE_MODE = false;
 // =============================
 
 export async function middleware(request: NextRequest) {

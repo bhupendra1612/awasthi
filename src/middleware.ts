@@ -7,9 +7,10 @@ const MAINTENANCE_MODE = false;
 // =============================
 
 export async function middleware(request: NextRequest) {
+    const url = request.nextUrl.clone();
+    
     // --- Maintenance Mode: redirect ALL traffic to /maintenance ---
     if (MAINTENANCE_MODE) {
-        const url = request.nextUrl.clone();
         // Allow the maintenance page itself (avoid infinite redirect)
         if (url.pathname === "/maintenance") {
             return NextResponse.next();
@@ -17,6 +18,12 @@ export async function middleware(request: NextRequest) {
         // Redirect everything else to /maintenance
         url.pathname = "/maintenance";
         return NextResponse.redirect(url);
+    } else {
+        // Redirect /maintenance to / if maintenance mode is off
+        if (url.pathname === "/maintenance") {
+            url.pathname = "/";
+            return NextResponse.redirect(url);
+        }
     }
     // --- End Maintenance Mode ---
 
